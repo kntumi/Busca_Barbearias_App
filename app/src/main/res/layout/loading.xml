@@ -1,0 +1,20 @@
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <ProgressBar
+        android:id="@+id/barraProgresso"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:animateLayoutChanges="true"
+        android:layout_marginTop="36dp"
+        android:layout_marginBottom="96dp"
+        android:indeterminateDrawable="@drawable/loading_drawable"
+        android:indeterminateDuration="800"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

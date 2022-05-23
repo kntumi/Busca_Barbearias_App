@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout>
+    <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/layoutPrincipal"
+        xmlns:app="http://schemas.android.com/apk/res-auto">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnVoltar"
+            android:layout_width="48dp"
+            android:layout_height="58dp"
+            style="@style/btns"
+            app:elevation="0dp"
+            android:elevation="0dp"
+            app:icon="@drawable/fechar_icn"
+            app:rippleColor="?colorControlHighlight"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconTint="?colorControlNormal"
+            app:cornerRadius="25dp"
+            android:layout_margin="20dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnOpcoes"
+            android:layout_width="48dp"
+            android:layout_height="58dp"
+            android:layout_margin="20dp"
+            app:elevation="0dp"
+            android:elevation="0dp"
+            app:cornerRadius="25dp"
+            style="@style/btns"
+            app:icon="@drawable/baixo_icn"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconTint="?colorControlNormal"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:rippleColor="?colorControlHighlight" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnEncontrar"
+            style="@style/btns"
+            android:layout_width="48dp"
+            android:layout_height="58dp"
+            android:layout_margin="20dp"
+            android:elevation="0dp"
+            app:cornerRadius="25dp"
+            app:elevation="0dp"
+            app:icon="@drawable/minha_localizacao"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconTint="?colorControlNormal"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:rippleColor="?colorControlHighlight" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</layout>

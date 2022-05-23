@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.appcompat.widget.AppCompatTextView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:id="@+id/txt"
+    android:paddingStart="24dp"
+    android:paddingEnd="24dp"
+    android:gravity="center|start"
+    android:drawableEnd="@drawable/go"
+    android:paddingVertical="12dp"
+    android:fontFamily="sans-serif-medium"
+    android:textColor="?android:textColorTertiary"
+    android:background="?android:selectableItemBackground"/>

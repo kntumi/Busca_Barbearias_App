@@ -1,0 +1,7 @@
+<com.google.android.material.checkbox.MaterialCheckBox
+    android:id="@+id/escolha"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingHorizontal="24dp"
+    android:textColor="?android:textColorTertiary"
+    xmlns:android="http://schemas.android.com/apk/res/android" />

@@ -1,0 +1,106 @@
+{
+  "project_info": {
+    "project_number": "61966461003",
+    "firebase_url": "https://rupertt-d42df.firebaseio.com",
+    "project_id": "rupertt-d42df",
+    "storage_bucket": "rupertt-d42df.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:61966461003:android:78d2a47e852dfd8f1385ce",
+        "android_client_info": {
+          "package_name": "kev.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "61966461003-g6e0ighluf2c4sua1fgc619oiqu4q4bf.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDvP9qIkma6a40RPpxhUSj66hf612QoKP4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "61966461003-g6e0ighluf2c4sua1fgc619oiqu4q4bf.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:61966461003:android:9a9468147189f7d81385ce",
+        "android_client_info": {
+          "package_name": "kev.app.timeless"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "61966461003-g6e0ighluf2c4sua1fgc619oiqu4q4bf.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDvP9qIkma6a40RPpxhUSj66hf612QoKP4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "61966461003-g6e0ighluf2c4sua1fgc619oiqu4q4bf.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:61966461003:android:0ac6c647b55bf1ef1385ce",
+        "android_client_info": {
+          "package_name": "kev.rupertt"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "61966461003-fh353aeunhhheeu5jfkiaj8oh6rekiqu.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "kev.rupertt",
+            "certificate_hash": "ef824ad59529a803aa77de0e7b5d49f497b4e52e"
+          }
+        },
+        {
+          "client_id": "61966461003-g6e0ighluf2c4sua1fgc619oiqu4q4bf.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDvP9qIkma6a40RPpxhUSj66hf612QoKP4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "61966461003-g6e0ighluf2c4sua1fgc619oiqu4q4bf.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

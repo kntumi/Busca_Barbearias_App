@@ -1,0 +1,46 @@
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/layoutLoading">
+
+        <ProgressBar
+            android:id="@+id/barraProgresso"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:visibility="gone"
+            android:animateLayoutChanges="true"
+            android:layout_marginTop="96dp"
+            android:layout_marginBottom="96dp"
+            android:indeterminateDrawable="@drawable/loading_drawable"
+            android:indeterminateDuration="800"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/retryBtn"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="48dp"
+            android:visibility="gone"
+            android:layout_height="58dp"
+            android:layout_marginTop="96dp"
+            android:animateLayoutChanges="true"
+            android:layout_marginBottom="96dp"
+            app:cornerRadius="25dp"
+            app:icon="@drawable/refresh"
+            app:rippleColor="?colorControlHighlight"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconTint="?colorControlNormal"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</layout>
