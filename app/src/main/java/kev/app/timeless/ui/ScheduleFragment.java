@@ -72,17 +72,11 @@ public class ScheduleFragment extends Fragment implements View.OnClickListener, 
             @Override
             public void onFragmentResumed(@NonNull FragmentManager fm, @NonNull Fragment f) {
                 super.onFragmentResumed(fm, f);
-                if (f instanceof ScheduleListFragment) {
-                    horário.observeForever(((ScheduleListFragment) f).getObserver());
-                }
             }
 
             @Override
             public void onFragmentPaused(@NonNull FragmentManager fm, @NonNull Fragment f) {
                 super.onFragmentPaused(fm, f);
-                if (f instanceof ScheduleListFragment) {
-                    horário.removeObserver(((ScheduleListFragment) f).getObserver());
-                }
             }
         };
     }
@@ -207,11 +201,7 @@ public class ScheduleFragment extends Fragment implements View.OnClickListener, 
                         hs.add(h);
                     }
 
-                    getChildFragmentManager()
-                            .beginTransaction()
-                            .replace(R.id.layoutFragment, new ScheduleListFragment())
-                            .runOnCommit(() -> horário.setValue(hs))
-                            .commit();
+
                 }
 
                 listenerRegistration = viewModel.getService().getFirestore().collection("Barbearia").document(bundle.getString("id")).collection("horario").addSnapshotListener(this);
@@ -247,7 +237,6 @@ public class ScheduleFragment extends Fragment implements View.OnClickListener, 
                                     getChildFragmentManager().setFragmentResult("TextFragment", bundle);
                                 }).commit();
                             } else {
-                                getChildFragmentManager().beginTransaction().replace(R.id.layoutFragment, new ScheduleListFragment()).runOnCommit(() -> horário.setValue(hs)).commit();
                             }
 
                             listenerRegistration = viewModel.getService().getFirestore().collection("Barbearia").document(bundle.getString("id")).collection("horario").addSnapshotListener(this);
@@ -379,10 +368,6 @@ public class ScheduleFragment extends Fragment implements View.OnClickListener, 
 
             viewModel.getHorários().put(bundle.getString("id"), map);
             horário.setValue(list);
-
-            if (getChildFragmentManager().getFragments().size() == 0 || !TextUtils.equals("ScheduleListFragment", getChildFragmentManager().getFragments().get(getChildFragmentManager().getFragments().size() - 1).getClass().getSimpleName())) {
-                getChildFragmentManager().beginTransaction().replace(R.id.layoutFragment, new ScheduleListFragment()).commit();
-            }
 
         } catch (Exception e) {
             e.printStackTrace();

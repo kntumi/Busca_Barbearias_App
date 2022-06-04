@@ -8,6 +8,7 @@ import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.widget.CompoundButton;
 import android.widget.Toast;
 
@@ -25,13 +26,11 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import javax.inject.Inject;
 
 import dagger.android.support.DaggerFragment;
 import io.reactivex.disposables.Disposable;
-import io.reactivex.functions.Consumer;
 import kev.app.timeless.R;
 import kev.app.timeless.api.Service;
 import kev.app.timeless.databinding.FragmentNewContactBinding;
@@ -47,9 +46,9 @@ public class NewContactFragment extends DaggerFragment implements View.OnClickLi
     private FragmentResultListener parentResultListener;
     private Toolbar.OnMenuItemClickListener onMenuItemClickListener;
     private Map<String, Object> map;
+    private ViewTreeObserver.OnGlobalLayoutListener onGlobalLayoutListener;
     private TextWatcher textWatcher;
     private MapViewModel viewModel;
-    private Runnable runnable;
 
     @Inject
     ViewModelProvidersFactory providerFactory;
@@ -70,14 +69,17 @@ public class NewContactFragment extends DaggerFragment implements View.OnClickLi
         contactsTypeAdapter = new ContactsTypeAdapter(new DiffUtil.ItemCallback<String>() {
             @Override
             public boolean areItemsTheSame(@NonNull String oldItem, @NonNull String newItem) {
+                System.out.println("areItemsTheSame ");
                 return false;
             }
 
             @Override
             public boolean areContentsTheSame(@NonNull String oldItem, @NonNull String newItem) {
+                System.out.println("areContentsTheSame ");
                 return false;
             }
         }, this);
+        contactsTypeAdapter.submitList(Arrays.asList("Sim", "Não"));
         binding.recyclerView.setLayoutManager(new LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false));
         binding.recyclerView.setAdapter(contactsTypeAdapter);
         parentResultListener = this::observarParent;
@@ -116,7 +118,7 @@ public class NewContactFragment extends DaggerFragment implements View.OnClickLi
                     disposables.remove(disposable);
                 }
 
-                if (TextUtils.equals("Editar contacto", binding.barra.getTitle())) {
+                if (bundle.containsKey("idToUpdate")) {
                     binding.barra.setOnMenuItemClickListener(onMenuItemClickListener);
                     return;
                 }
@@ -149,6 +151,10 @@ public class NewContactFragment extends DaggerFragment implements View.OnClickLi
             binding.barra.setOnMenuItemClickListener(null);
         }
 
+        if (onGlobalLayoutListener != null) {
+            binding.recyclerView.getViewTreeObserver().removeOnGlobalLayoutListener(onGlobalLayoutListener);
+        }
+
         if (disposables != null) {
             for (Disposable disposable : disposables) {
                 if (!disposable.isDisposed()) {
@@ -166,8 +172,8 @@ public class NewContactFragment extends DaggerFragment implements View.OnClickLi
         binding.recyclerView.setAdapter(null);
         binding.recyclerView.setLayoutManager(null);
         onMenuItemClickListener = null;
-        runnable = null;
         viewModel = null;
+        onGlobalLayoutListener = null;
         map = null;
         contactsTypeAdapter = null;
         textWatcher = null;
@@ -197,58 +203,57 @@ public class NewContactFragment extends DaggerFragment implements View.OnClickLi
                 viewModel = new ViewModelProvider(requireActivity(), providerFactory).get(MapViewModel.class);
             }
 
-            List<Map<String, Object>> contactos = viewModel.getContactos().get(bundle.getString("id"));
-            String id = String.valueOf(result.getInt("idToUpdate"));
+            bundle.putString("idToUpdate", String.valueOf(result.getInt("idToUpdate")));
+            binding.nrTelefone.setText(bundle.getString("idToUpdate"));
+            binding.barra.setTitle("Editar contacto");
 
-            for (int i = 0; i < Objects.requireNonNull(contactos).size() ; i++) {
-                Map<String, Object> map = contactos.get(i);
+            if (onGlobalLayoutListener == null) {
+                onGlobalLayoutListener = () -> {
+                    try {
+                        Map<String, Object> map = viewModel.getContactos().get(bundle.getString("id")).get(bundle.getString("idToUpdate"));
+                        boolean isChecked = Boolean.parseBoolean(String.valueOf(map.get("contactoPrincipal")));
 
-                if (!TextUtils.equals(String.valueOf(map.get("nrTelefone")), id)) {
-                    continue;
-                }
+                        if (bundle.get("selectedPosition") != null) {
+                            CompoundButton button = (CompoundButton) binding.recyclerView.getChildAt(bundle.getInt("selectedPosition"));
 
-                String contactoPrincipal = Boolean.parseBoolean(String.valueOf(map.get("contactoPrincipal"))) ? "Sim" : "Não";
+                            if (button.isChecked() == isChecked) {
+                                return;
+                            }
+                        }
 
-                if (runnable == null) {
-                    runnable = () -> {
-                        System.out.println("crazy bone "+binding.recyclerView.getChildCount());
+                        String txtBtn = isChecked ? "Sim" : "Não";
+
                         for (int n = 0 ; n < binding.recyclerView.getChildCount() ; n++) {
                             CompoundButton button = (CompoundButton) binding.recyclerView.getChildAt(n);
 
-                            if (!TextUtils.equals(contactoPrincipal, button.getText())) {
+                            if (!TextUtils.equals(txtBtn, button.getText())) {
                                 continue;
                             }
 
                             button.setChecked(true);
                             break;
                         }
-                    };
-                }
-
-                binding.barra.setTitle("Editar contacto");
-                binding.nrTelefone.setText(String.valueOf(map.get("nrTelefone")));
-
-                break;
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                };
             }
+
+            binding.recyclerView.getViewTreeObserver().addOnGlobalLayoutListener(onGlobalLayoutListener);
         }
 
         if (TextUtils.isEmpty(binding.barra.getTitle())) {
-            binding.barra.setTitle("Novo contacto");
-        }
+            for (int i = 0 ; i < binding.barra.getMenu().size() ; i++) {
+                binding.barra.getMenu().getItem(i).setEnabled(bundle.containsKey("selectedPosition"));
+            }
 
-        if (contactsTypeAdapter.getCurrentList().size() == 0) {
-            contactsTypeAdapter.submitList(Arrays.asList("Sim", "Não"), new Runnable() {
-                @Override
-                public void run() {
-                    binding.recyclerView.setAdapter(contactsTypeAdapter);
-                }
-            });
+            binding.barra.setTitle("Novo contacto");
         }
     }
 
     private void observarResposta(Boolean aBoolean) {
         if (aBoolean) {
-            onClick(binding.recyclerView);
+            onClick(null);
         } else {
             Toast.makeText(requireContext(), "", Toast.LENGTH_LONG).show();
         }
@@ -264,21 +269,31 @@ public class NewContactFragment extends DaggerFragment implements View.OnClickLi
     @Override
     public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
         for (int i = 0 ; i < binding.recyclerView.getChildCount() ; i++) {
-            if (compoundButton == binding.recyclerView.getChildAt(i)) {
-                if (b) {
-                    bundle.putInt("selectedPosition", i);
-                }
-
-                break;
+            if (compoundButton != binding.recyclerView.getChildAt(i)) {
+                continue;
             }
+
+            if (b) {
+                bundle.putInt("selectedPosition", i);
+            } else {
+                bundle.remove("selectedPosition");
+            }
+
+            break;
         }
 
         for (int i = 0 ; i < binding.recyclerView.getChildCount() ; i++) {
-            if (i != bundle.getInt("selectedPosition")) {
-                CompoundButton button = (CompoundButton) binding.recyclerView.getChildAt(i);
-                button.setChecked(false);
-                break;
+            if (i == bundle.getInt("selectedPosition")) {
+                continue;
             }
+
+            CompoundButton button = (CompoundButton) binding.recyclerView.getChildAt(i);
+            button.setChecked(false);
+            break;
+        }
+
+        for (int i = 0 ; i < binding.barra.getMenu().size() ; i++) {
+            binding.barra.getMenu().getItem(i).setEnabled(bundle.containsKey("selectedPosition"));
         }
     }
 
@@ -289,11 +304,15 @@ public class NewContactFragment extends DaggerFragment implements View.OnClickLi
 
         map.put("contactoPrincipal", bundle.getInt("selectedPosition") == 0);
 
-        return disposables.add(service.getBarbeariaService().inserirContacto(bundle.getString("id"), binding.nrTelefone.getText().toString(), map).doOnError(new Consumer<Throwable>() {
-            @Override
-            public void accept(Throwable throwable) throws Exception {
-                throwable.printStackTrace();
+        return disposables.add(service.getBarbeariaService().inserirContacto(bundle.getString("id"), binding.nrTelefone.getText().toString(), map).doOnSubscribe(disposable -> {
+            if (onGlobalLayoutListener != null) {
+                binding.recyclerView.getViewTreeObserver().removeOnGlobalLayoutListener(onGlobalLayoutListener);
             }
-        }).doOnSubscribe(disposable -> item.setEnabled(false)).doFinally(() -> item.setEnabled(true)).subscribe(this::observarResposta, throwable -> Toast.makeText(requireActivity(), "", Toast.LENGTH_LONG).show()));
+        })
+                .doFinally(() -> {
+                    if (onGlobalLayoutListener != null) {
+                        binding.recyclerView.getViewTreeObserver().addOnGlobalLayoutListener(onGlobalLayoutListener);
+                    }
+                }).doOnEvent((aBoolean, throwable) -> bundle.putString("status", throwable == null ? String.valueOf(aBoolean) : "between")).doOnSubscribe(disposable -> item.setEnabled(false)).doFinally(() -> item.setEnabled(true)).subscribe(this::observarResposta, throwable -> Toast.makeText(requireActivity(), "", Toast.LENGTH_LONG).show()));
     }
 }

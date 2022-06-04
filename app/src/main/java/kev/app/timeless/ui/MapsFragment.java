@@ -209,10 +209,6 @@ public class MapsFragment extends DaggerFragment implements OnMapReadyCallback, 
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-        if (TextUtils.isEmpty(id)) {
-            return;
-        }
     }
 
     @SuppressLint("MissingPermission")

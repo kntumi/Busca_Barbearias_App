@@ -14,17 +14,14 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 
 import kev.app.timeless.R;
-import kev.app.timeless.ui.AboutFragment;
 
-public class AboutAdapter extends ListAdapter<AboutFragment.State, AboutAdapter.AboutViewHolder> {
-    private State<AboutFragment.State> state;
+public class AboutAdapter extends ListAdapter<State, AboutAdapter.AboutViewHolder> {
     private View.OnClickListener onClickListener;
     private ConstraintLayout layout;
     private Info info;
 
-    public AboutAdapter(@NonNull DiffUtil.ItemCallback<AboutFragment.State> diffCallback, State<AboutFragment.State> state, View.OnClickListener onClickListener, Info info) {
+    public AboutAdapter(@NonNull DiffUtil.ItemCallback<State> diffCallback, View.OnClickListener onClickListener, Info info) {
         super(diffCallback);
-        this.state = state;
         this.onClickListener = onClickListener;
         this.info = info;
     }
@@ -34,12 +31,14 @@ public class AboutAdapter extends ListAdapter<AboutFragment.State, AboutAdapter.
     public AboutViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         AboutViewHolder viewHolder = null;
 
-        switch (state.value()) {
-            case Loaded: viewHolder = new AboutAdapter.AboutViewHolder(LayoutInflater.from(parent.getContext()).inflate(info.isUserLoggedIn() ? R.layout.about : R.layout.not_about, parent, false));
+        switch (viewType) {
+            case 1: viewHolder = new AboutAdapter.AboutViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.error, parent, false));
                 break;
-            case Error: viewHolder = new AboutAdapter.AboutViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.error, parent, false));
+            case 2: viewHolder = new AboutAdapter.AboutViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.loading, parent, false));
                 break;
-            case Loading: viewHolder = new AboutAdapter.AboutViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.loading, parent, false));
+            case 3: viewHolder = new AboutAdapter.AboutViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.text, parent, false));
+                break;
+            case 4: viewHolder = new AboutAdapter.AboutViewHolder(LayoutInflater.from(parent.getContext()).inflate(info.isUserLoggedIn() ? R.layout.about : R.layout.not_about, parent, false));
                 break;
         }
 
@@ -54,6 +53,17 @@ public class AboutAdapter extends ListAdapter<AboutFragment.State, AboutAdapter.
         }
 
         textView.setText(nomeActual);
+    }
+
+    @Override
+    public int getItemViewType(int position) {
+        switch (getItem(position)) {
+            case Error: return 1;
+            case Loading: return 2;
+            case Empty: return 3;
+            case Loaded: return 4;
+            default: return super.getItemViewType(position);
+        }
     }
 
     @Override

@@ -14,7 +14,6 @@ import kev.app.timeless.ui.LayoutFragment;
 import kev.app.timeless.ui.LoadingFragment;
 import kev.app.timeless.ui.LoginFragment;
 import kev.app.timeless.ui.MapsFragment;
-import kev.app.timeless.ui.MyServicesFragment;
 import kev.app.timeless.ui.NewContactFragment;
 import kev.app.timeless.ui.NonUserControlFragment;
 import kev.app.timeless.ui.NonUserFragment;
@@ -22,6 +21,8 @@ import kev.app.timeless.ui.ProfileFragment;
 import kev.app.timeless.ui.RegisterFragment;
 import kev.app.timeless.ui.ScheduleFragment;
 import kev.app.timeless.ui.ServicesFragment;
+import kev.app.timeless.ui.SubServiceFragment;
+import kev.app.timeless.ui.TypeServicesFragment;
 import kev.app.timeless.ui.UserControlFragment;
 import kev.app.timeless.ui.UserFragment;
 
@@ -44,6 +45,51 @@ public class FragmentUtil {
 
     public static Integer numBackStack(FragmentManager fragmentManager){
         return fragmentManager.getBackStackEntryCount();
+    }
+
+    public static Fragment obterFragment (String key) {
+        Fragment fragment = null;
+
+        switch (key){
+            case "AboutFragment": fragment = new AboutFragment();
+                break;
+            case "ContactsFragment": fragment = new ContactsFragment();
+                break;
+            case "TypeServicesFragment": fragment = new TypeServicesFragment();
+                break;
+            case "NewContactFragment": fragment = new NewContactFragment();
+                break;
+            case "ScheduleFragment": fragment = new ScheduleFragment();
+                break;
+            case "InsertNameFragment": fragment = new InsertNameFragment();
+                break;
+            case "LoginFragment": fragment = new LoginFragment();
+                break;
+            case "ProfileFragment": fragment = new ProfileFragment();
+                break;
+            case "LoadingFragment": fragment = new LoadingFragment();
+                break;
+            case "MapsFragment": fragment = new MapsFragment();
+                break;
+            case "RegisterFragment": fragment = new RegisterFragment();
+                break;
+            case "NonUserFragment": fragment = new NonUserFragment();
+                break;
+            case "UserFragment":  fragment = new UserFragment();
+                break;
+            case "NonUserControlFragment": fragment = new NonUserControlFragment();
+                break;
+            case "UserControlFragment": fragment = new UserControlFragment();
+                break;
+            case "LayoutFragment": fragment = new LayoutFragment();
+                break;
+            case "SubServiceFragment": fragment = new SubServiceFragment();
+                break;
+            case "ServicesFragment": fragment = new ServicesFragment();
+                break;
+        }
+
+        return fragment;
     }
 
     public static void criarFragment(String key, FragmentManager fragmentManager, int id){
@@ -79,8 +125,6 @@ public class FragmentUtil {
             case "UserControlFragment": fragment = new UserControlFragment();
                 break;
             case "LayoutFragment": fragment = new LayoutFragment();
-                break;
-            case "MyServicesFragment": fragment = new MyServicesFragment();
                 break;
             case "ServicesFragment": fragment = new ServicesFragment();
                 break;

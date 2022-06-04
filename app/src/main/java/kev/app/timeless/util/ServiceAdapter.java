@@ -11,12 +11,15 @@ import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
-import kev.app.timeless.R;
+import com.google.android.material.button.MaterialButton;
 
-    public class TypeServiceAdapter extends ListAdapter<State, TypeServiceAdapter.ViewHolder> {
+import kev.app.timeless.R;
+import kev.app.timeless.ui.ServicesFragment;
+
+public class ServiceAdapter extends ListAdapter<State, ServiceAdapter.ViewHolder> {
     private View.OnClickListener onClickListener;
 
-    public TypeServiceAdapter(@NonNull DiffUtil.ItemCallback<State> diffCallback, View.OnClickListener onClickListener) {
+    public ServiceAdapter(@NonNull DiffUtil.ItemCallback<State> diffCallback, View.OnClickListener onClickListener) {
         super(diffCallback);
         this.onClickListener = onClickListener;
     }
@@ -24,14 +27,14 @@ import kev.app.timeless.R;
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        ViewHolder viewHolder = null;
+        ServiceAdapter.ViewHolder viewHolder = null;
 
         switch (viewType) {
-            case 1: viewHolder = new ViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.error, parent, false));
+            case 1: viewHolder = new ServiceAdapter.ViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.error, parent, false));
                 break;
-            case 2: viewHolder = new ViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.loading, parent, false));
+            case 2: viewHolder = new ServiceAdapter.ViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.loading, parent, false));
                 break;
-            case 3: viewHolder = new ViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.text, parent, false));
+            case 3: viewHolder = new ServiceAdapter.ViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.text, parent, false));
                 break;
         }
 
@@ -47,7 +50,7 @@ import kev.app.timeless.R;
         }
 
         AppCompatTextView appCompatTextView = holder.itemView.findViewById(R.id.txt);
-        appCompatTextView.setPrecomputedText(PrecomputedTextCompat.create("Adicione o seu primeiro contacto para os outros o verem", appCompatTextView.getTextMetricsParamsCompat()));
+        appCompatTextView.setPrecomputedText(PrecomputedTextCompat.create("Adicione o seu primeiro serviço para os outros usuários o verem", appCompatTextView.getTextMetricsParamsCompat()));
     }
 
     @Override
@@ -61,18 +64,30 @@ import kev.app.timeless.R;
     }
 
     @Override
-    public void onViewAttachedToWindow(@NonNull ViewHolder holder) {
+    public void onViewAttachedToWindow(@NonNull ServiceAdapter.ViewHolder holder) {
         super.onViewAttachedToWindow(holder);
-        holder.itemView.setOnClickListener(onClickListener);
+
+        if (holder.getItemViewType() != 1) {
+            return;
+        }
+
+        MaterialButton button = holder.itemView.findViewById(R.id.retryBtn);
+        button.setOnClickListener(onClickListener);
     }
 
     @Override
-    public void onViewDetachedFromWindow(@NonNull ViewHolder holder) {
+    public void onViewDetachedFromWindow(@NonNull ServiceAdapter.ViewHolder holder) {
         super.onViewDetachedFromWindow(holder);
-        holder.itemView.setOnClickListener(null);
+
+        if (holder.getItemViewType() != 1) {
+            return;
+        }
+
+        MaterialButton button = holder.itemView.findViewById(R.id.retryBtn);
+        button.setOnClickListener(null);
     }
 
-    public static class ViewHolder extends RecyclerView.ViewHolder{
+    public static class ViewHolder extends RecyclerView.ViewHolder {
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
         }

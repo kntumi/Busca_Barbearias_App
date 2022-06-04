@@ -31,7 +31,13 @@ public class ServicesAdapter extends ListAdapter<Serviço, ServicesAdapter.Servi
 
     @Override
     public void onBindViewHolder(@NonNull ServicoViewHolder holder, int position) {
-        holder.atualizarView(holder.itemView.findViewById(R.id.txt), getItem(position).getNome());
+        Serviço serviço = getItem(position);
+
+        if (serviço == null) {
+            return;
+        }
+
+        holder.atualizarView(holder.itemView.findViewById(R.id.txt), serviço.getNome());
     }
 
     @Override

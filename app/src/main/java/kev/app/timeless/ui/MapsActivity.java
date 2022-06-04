@@ -90,6 +90,8 @@ public class MapsActivity extends DaggerAppCompatActivity {
                         break;
                     case "ContactsFragment": users.observeForever(((ContactsFragment) f).getObserver());
                         break;
+                    case "TypeServicesFragment": users.observeForever(((TypeServicesFragment) f).getObserver());
+                        break;
                 }
             }
 
@@ -112,6 +114,8 @@ public class MapsActivity extends DaggerAppCompatActivity {
                     case "ServicesFragment": users.removeObserver(((ServicesFragment) f).getObserver());
                         break;
                     case "ContactsFragment": users.removeObserver(((ContactsFragment) f).getObserver());
+                        break;
+                    case "TypeServicesFragment": users.removeObserver(((TypeServicesFragment) f).getObserver());
                         break;
                 }
             }

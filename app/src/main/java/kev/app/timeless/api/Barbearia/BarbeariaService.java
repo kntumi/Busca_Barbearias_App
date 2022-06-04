@@ -2,7 +2,6 @@ package kev.app.timeless.api.Barbearia;
 
 import com.google.android.gms.maps.model.LatLng;
 
-import java.util.List;
 import java.util.Map;
 
 import io.reactivex.Maybe;
@@ -14,10 +13,11 @@ public interface BarbeariaService {
     Maybe<Boolean> editarEstado(Boolean aBoolean, String id);
     Maybe<Boolean> inserirHorarioPorDia(Integer diaSemana, Map<String, Map<String, Map<String, Float>>> map, String id);
     Maybe<Map<String, Map<String, Object>>> obterServiços(String id);
+    Maybe<Boolean> removerContacto(String id, String nrContacto);
     Maybe<Map<String, Map<String, Object>>> obterTiposServiços(String id, String idServiço);
     Maybe<Map<String, Map<String, Object>>> obterSubServiços (String id, String idServiço, String idTipoServiço);
     Maybe<Map<String, Object>> obterEstabelecimento(String id);
-    Maybe<List<Map<String, Object>>> obterContactos(String id);
+    Maybe<Map<String, Map<String, Object>>> obterContactos(String id);
     Maybe<Map<String, Map<String, Double>>> obterHorário(String id);
     Maybe<Boolean> obterContacto(String id, String nrContacto);
     Maybe<Boolean> removerHorario(String id, int dia);

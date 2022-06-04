@@ -4,7 +4,6 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -24,12 +23,13 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.ListenerRegistration;
+import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
@@ -48,13 +48,12 @@ import kev.app.timeless.util.ContactsAdapter;
 import kev.app.timeless.util.State;
 import kev.app.timeless.viewmodel.MapViewModel;
 
-public class ContactsFragment extends DaggerFragment implements View.OnClickListener, State<ContactsFragment.State>, View.OnLongClickListener {
+public class ContactsFragment extends DaggerFragment implements View.OnClickListener, View.OnLongClickListener {
     private Observer<List<User>> observer;
     private LayoutDefaultBinding binding;
     private Bundle bundle, b;
     private ContactAdapter contactAdapter;
     private ContactsAdapter contactsAdapter;
-    private State state;
     private FragmentResultListener parentResultListener;
     private ListenerRegistration listenerRegistration;
     private ItemTouchHelper itemTouchHelper;
@@ -88,7 +87,7 @@ public class ContactsFragment extends DaggerFragment implements View.OnClickList
             public boolean areContentsTheSame(@NonNull State oldItem, @NonNull State newItem) {
                 return false;
             }
-        }, this, this);
+        }, this);
         binding.recyclerView.setLayoutManager(new LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false));
         binding.recyclerView.setAdapter(contactAdapter);
         binding.barra.setTitle("Contactos");
@@ -135,7 +134,6 @@ public class ContactsFragment extends DaggerFragment implements View.OnClickList
         b = null;
         itemTouchHelper = null;
         clipboardManager = null;
-        state = null;
         viewModel = null;
         contactAdapter = null;
         bundle = null;
@@ -162,49 +160,17 @@ public class ContactsFragment extends DaggerFragment implements View.OnClickList
     private void observarParent(String requestKey, Bundle result) {
         bundle = bundle.size() == 0 ? result : bundle;
 
-        if (disposable != null) {
-            if (!disposable.isDisposed()) {
-                disposable.dispose();
+        contactAdapter.submitList(Collections.singletonList(viewModel.getContactos().containsKey(result.getString("id")) ? State.Loaded : State.Loading), () -> {
+            List<State> states = contactAdapter.getCurrentList();
+            for (int i = 0 ; i < states.size(); i++) {
+                switch (states.get(i)) {
+                    case Loading: obterContactos(result);
+                        break;
+                    case Loaded: onLoad();
+                        break;
+                }
             }
-
-            disposable = null;
-        }
-
-        if (listenerRegistration != null) {
-            listenerRegistration.remove();
-            listenerRegistration = null;
-        }
-
-        if (TextUtils.isEmpty(result.getString("id"))) {
-            return;
-        }
-
-        if (state == null) {
-            state = viewModel.getContactos().containsKey(result.getString("id")) ? State.Loaded : State.Loading;
-        }
-
-        contactAdapter.submitList(Collections.singletonList(state));
-
-        switch (state) {
-            case Loading: obterContactos(result);
-                break;
-            case Loaded: onLoad();
-                break;
-        }
-    }
-
-    private void observarDocument(DocumentSnapshot documentSnapshot, FirebaseFirestoreException exception) {
-        try {
-            if (!documentSnapshot.exists()) {
-                viewModel.getContactos().remove(documentSnapshot.getId());
-                return;
-            }
-
-            viewModel.getContactos().put(documentSnapshot.getId(), null);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        });
     }
 
     private void obterContactos(Bundle result) {
@@ -212,10 +178,16 @@ public class ContactsFragment extends DaggerFragment implements View.OnClickList
                 .timeout(5, TimeUnit.SECONDS)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .doOnSuccess(stringObjectMap -> viewModel.getContactos().put(result.getString("id"), stringObjectMap))
-                .doAfterSuccess(stringObjectMap -> state = State.Loaded)
-                .doOnError(throwable -> state = State.Error)
-                .subscribe(stringObjectMap -> onLoad(), throwable -> contactAdapter.submitList(Collections.singletonList(state)));
+                .subscribe(maps -> {
+                    viewModel.getContactos().put(result.getString("id"), maps);
+
+                    if (maps.size() != 0) {
+                        onLoad();
+                        return;
+                    }
+
+                    contactAdapter.submitList(Collections.singletonList(State.Empty), this::adicionarListener);
+                }, throwable -> contactAdapter.submitList(Collections.singletonList(State.Error)));
     }
 
     private void observarUser(List<User> users) {
@@ -259,12 +231,16 @@ public class ContactsFragment extends DaggerFragment implements View.OnClickList
         }
     }
 
-    @Override
-    public State value() {
-        return state;
+    public void adicionarListener () {
+        listenerRegistration = viewModel.getService().getFirestore().collection("Barbearia").document(bundle.getString("id")).collection("contactos").addSnapshotListener(this::observarCollection);
     }
 
     public void onLoad() {
+        if (listenerRegistration != null) {
+            listenerRegistration.remove();
+            listenerRegistration = null;
+        }
+
         if (contactsAdapter == null) {
             contactsAdapter = new ContactsAdapter(new DiffUtil.ItemCallback<Contacto>() {
                 @Override
@@ -279,6 +255,8 @@ public class ContactsFragment extends DaggerFragment implements View.OnClickList
             }, this);
         }
 
+        adicionarListener();
+
         if (itemTouchHelper == null) {
             itemTouchHelper = new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
                 @Override
@@ -289,7 +267,20 @@ public class ContactsFragment extends DaggerFragment implements View.OnClickList
                 @Override
                 public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
                     switch (direction) {
-                        case ItemTouchHelper.LEFT: // delete contact
+                        case ItemTouchHelper.LEFT: if (disposable != null) {
+                                                      disposable.dispose();
+                                                      disposable = null;
+                                                   }
+
+                                                   String nrContacto = String.valueOf(contactsAdapter.getCurrentList().get(viewHolder.getBindingAdapterPosition()).getNrTelefone());
+
+                                                   disposable = viewModel.getService().getBarbeariaService().removerContacto(bundle.getString("id"), nrContacto).subscribe(aBoolean -> {
+                                                       if (aBoolean) {
+                                                           viewModel.getContactos().get(bundle.getString("id")).remove(nrContacto);
+                                                       }
+
+                                                       Toast.makeText(requireContext(), aBoolean ? "O contacto foi removido com sucesso" : "", Toast.LENGTH_LONG).show();
+                                                   }, throwable -> Toast.makeText(requireActivity(), "", Toast.LENGTH_LONG).show());
                             break;
                         case ItemTouchHelper.RIGHT: if (b == null) {
                                                         b = new Bundle();
@@ -314,22 +305,62 @@ public class ContactsFragment extends DaggerFragment implements View.OnClickList
 
         List<Contacto> contactos = new ArrayList<>();
 
-        for (Map<String, Object> map : Objects.requireNonNull(viewModel.getContactos().get(bundle.getString("id")))) {
-            Contacto contacto = new Contacto();
-
-            for (Map.Entry<String, Object> entry : map.entrySet()) {
-                switch (entry.getKey()) {
-                    case "nrTelefone": contacto.setNrTelefone(Integer.parseInt(entry.getValue().toString()));
-                        break;
-                    case "posicao": contacto.setPosicao(Integer.parseInt(entry.getValue().toString()));
-                        break;
-                }
-            }
-
-            contactos.add(contacto);
+        for (Map.Entry<String, Map<String, Object>> entry : viewModel.getContactos().get(bundle.getString("id")).entrySet()) {
+            contactos.add(new Contacto(Integer.parseInt(entry.getKey()), Boolean.parseBoolean(entry.getValue().get("contactoPrincipal").toString())));
         }
 
         contactsAdapter.submitList(contactos);
+    }
+
+    private void observarCollection(QuerySnapshot value, FirebaseFirestoreException error) {
+        try {
+            if (value.isEmpty()) {
+                if (binding.recyclerView.getAdapter() != contactAdapter) {
+                    binding.recyclerView.setAdapter(contactAdapter);
+                }
+
+                if (viewModel.getContactos().containsKey(bundle.getString("id"))) {
+                    viewModel.getContactos().get(bundle.getString("id")).clear();
+                }
+
+                State currentState = contactAdapter.getCurrentList().get(0);
+
+                if (currentState != State.Empty) {
+                    contactAdapter.submitList(Collections.singletonList(State.Empty));
+                }
+
+                return;
+            }
+
+            Map<String, Map<String, Object>> map = new HashMap<>();
+
+            for (DocumentSnapshot snapshot : value) {
+                map.put(snapshot.getId(), snapshot.getData());
+            }
+
+            if (viewModel.getContactos().containsKey(bundle.getString("id"))) {
+                if (map.equals(viewModel.getContactos().get(bundle.getString("id")))) {
+                    return;
+                }
+            }
+
+            viewModel.getContactos().put(bundle.getString("id"), map);
+
+            List<Contacto> contactos = new ArrayList<>();
+
+            for (Map.Entry<String, Map<String, Object>> entry : viewModel.getContactos().get(bundle.getString("id")).entrySet()) {
+                contactos.add(new Contacto(Integer.parseInt(entry.getKey()), Boolean.parseBoolean(entry.getValue().get("contactoPrincipal").toString())));
+            }
+
+            if (binding.recyclerView.getAdapter() != contactsAdapter) {
+                binding.recyclerView.setAdapter(contactsAdapter);
+            }
+
+            contactsAdapter.submitList(contactos);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -348,11 +379,5 @@ public class ContactsFragment extends DaggerFragment implements View.OnClickList
 
         Toast.makeText(requireContext(), toastMessage, Toast.LENGTH_LONG).show();
         return true;
-    }
-
-    public enum State {
-        Loading,
-        Error,
-        Loaded
     }
 }

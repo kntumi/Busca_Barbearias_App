@@ -65,17 +65,11 @@ public class SubServiceFragment extends Fragment implements View.OnClickListener
             @Override
             public void onFragmentResumed(@NonNull FragmentManager fm, @NonNull Fragment f) {
                 super.onFragmentResumed(fm, f);
-                if (f instanceof SubServiceListFragment) {
-                    subServiços.observeForever(((SubServiceListFragment) f).getObserver());
-                }
             }
 
             @Override
             public void onFragmentPaused(@NonNull FragmentManager fm, @NonNull Fragment f) {
                 super.onFragmentPaused(fm, f);
-                if (f instanceof SubServiceListFragment) {
-                    subServiços.removeObserver(((SubServiceListFragment) f).getObserver());
-                }
             }
         };
     }
@@ -177,19 +171,7 @@ public class SubServiceFragment extends Fragment implements View.OnClickListener
                                 getChildFragmentManager().setFragmentResult("TextFragment", bundle);
                             }).commit();
                 } else {
-                    getChildFragmentManager()
-                            .beginTransaction()
-                            .replace(R.id.layoutFragment, new SubServiceListFragment(), "currentFragment")
-                            .runOnCommit(() -> {
-                                ArrayList<SubServiço> subServiçosDaDb = new ArrayList<>();
 
-                                for (Map.Entry<String, Map<String, Object>> entry: viewModel.getSubServiços().get(idTipoServiço).entrySet()) {
-                                    subServiçosDaDb.add(new SubServiço(String.valueOf(entry.getValue().get("nome")), Double.parseDouble(String.valueOf(entry.getValue().get("preco"))), entry.getKey()));
-                                }
-
-                                subServiços.setValue(subServiçosDaDb);
-                                listenerRegistration = viewModel.getService().getFirestore().collection("Barbearia").document(id).collection("servicos").document(idServiço).collection("tipos").document(idTipoServiço).collection("subservicos").addSnapshotListener(this);
-                            }).commit();
                 }
             } else {
                 if (callbackObserver == null) {
@@ -217,18 +199,7 @@ public class SubServiceFragment extends Fragment implements View.OnClickListener
                                 getChildFragmentManager().setFragmentResult("TextFragment", bundle);
                             }).commit();
                 } else {
-                    getChildFragmentManager()
-                            .beginTransaction()
-                            .replace(R.id.layoutFragment, new SubServiceListFragment(), "currentFragment")
-                            .runOnCommit(() -> {
-                                ArrayList<SubServiço> subServiçosDaDb = new ArrayList<>();
 
-                                for (Map.Entry<String, Map<String, Object>> entry: viewModel.getSubServiços().get(idTipoServiço).entrySet()) {
-                                    subServiçosDaDb.add(new SubServiço(String.valueOf(entry.getValue().get("nome")), Double.parseDouble(String.valueOf(entry.getValue().get("preco"))), entry.getKey()));
-                                }
-
-                                subServiços.setValue(subServiçosDaDb);
-                            }).commit();
                 }
             } else {
                 if (callbackObserver == null) {
@@ -278,18 +249,7 @@ public class SubServiceFragment extends Fragment implements View.OnClickListener
                         getChildFragmentManager().setFragmentResult("TextFragment", bundle);
                     }).commit();
         } else {
-            getChildFragmentManager()
-                    .beginTransaction()
-                    .replace(R.id.layoutFragment, new SubServiceListFragment(), "currentFragment")
-                    .runOnCommit(() -> {
-                        ArrayList<SubServiço> subServiçosDaDb = new ArrayList<>();
 
-                        for (Map.Entry<String, Map<String, Object>> entry: stringMapMap.entrySet()) {
-                            subServiçosDaDb.add(new SubServiço(String.valueOf(entry.getValue().get("nome")), Double.parseDouble(String.valueOf(entry.getValue().get("preco"))), entry.getKey()));
-                        }
-
-                        subServiços.setValue(subServiçosDaDb);
-                    }).commit();
         }
 
         listenerRegistration = viewModel.getService().getFirestore().collection("Barbearia").document(id).collection("servicos").document(idServiço).collection("tipos").document(idTipoServiço).collection("subservicos").addSnapshotListener(this);
@@ -362,9 +322,6 @@ public class SubServiceFragment extends Fragment implements View.OnClickListener
 
             subServiços.setValue(subServiçosDaDb);
 
-            if (getChildFragmentManager().getFragments().size() == 0 || !TextUtils.equals(getChildFragmentManager().getFragments().get(getChildFragmentManager().getFragments().size() - 1).getClass().getSimpleName(), "SubServiceListFragment")) {
-                getChildFragmentManager().beginTransaction().replace(R.id.layoutFragment, new SubServiceListFragment()).commit();
-            }
         } catch (Exception e) {
             e.printStackTrace();
         }
