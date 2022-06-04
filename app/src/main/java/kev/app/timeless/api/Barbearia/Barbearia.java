@@ -1,7 +1,5 @@
 package kev.app.timeless.api.Barbearia;
 
-import android.text.TextUtils;
-
 import com.firebase.geofire.GeoFireUtils;
 import com.firebase.geofire.GeoLocation;
 import com.firebase.geofire.GeoQueryBounds;
@@ -29,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 
 import io.reactivex.Maybe;
-import io.reactivex.MaybeOnSubscribe;
 
 public class Barbearia {
     public static Maybe<Boolean> removerSubServiço(String id, String idServiço, String idTipoServiço, String idSubServico, FirebaseFirestore firestore) {
@@ -260,19 +257,19 @@ public class Barbearia {
                 }));
     }
 
-    public static Maybe<Map<String, Map<String, Double>>> obterHorário(String id, FirebaseFirestore firestore) {
+    public static Maybe<Map<String, Map<String, Object>>> obterHorário(String id, FirebaseFirestore firestore) {
         return Maybe.create(emitter -> firestore.collection("Barbearia")
                 .document(id)
                 .collection("horario")
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
-                    Map<String, Map<String, Double>> horário = new HashMap<>();
+                    Map<String, Map<String, Object>> horário = new HashMap<>();
 
                     for (DocumentSnapshot documentSnapshot : querySnapshot.getDocuments()) {
                         horário.put(documentSnapshot.getId(), new HashMap<>());
 
                         for (String key : documentSnapshot.getData().keySet()) {
-                            horário.get(documentSnapshot.getId()).put(key, documentSnapshot.getDouble(key));
+                            horário.get(documentSnapshot.getId()).put(key, documentSnapshot.get(key));
                         }
                     }
 
@@ -287,57 +284,26 @@ public class Barbearia {
                 }));
     }
 
-    public static Maybe<List<Map<String, Object>>> obterContactos(String id, HttpRequestFactory requestFactory, Gson gson) {
-        return Maybe.create((MaybeOnSubscribe<List<Map<String, Object>>>) emitter -> {
-            List<Map<String, Object>> maps = null;
-            HttpRequest httpRequest;
-            Exception exception = null;
+    public static Maybe<Map<String, Map<String, Object>>> obterContactos(String id, FirebaseFirestore firestore) {
+        return Maybe.create(emitter -> firestore.collection("Barbearia")
+                .document(id)
+                .collection("contactos")
+                .get()
+                .addOnCompleteListener(task -> {
+                    Map<String, Map<String, Object>> map = new HashMap<>();
 
-            httpRequest = requestFactory.buildGetRequest(new GenericUrl("https://firestore.googleapis.com/v1/projects/rupertt-d42df/databases/(default)/documents/Barbearia/".concat(id)+"/contactos"));
-
-            try {
-                HttpResponse response = httpRequest.execute();
-                maps = new ArrayList<>();
-                LinkedTreeMap<String, ArrayList<LinkedTreeMap<String, Object>>> list = gson.fromJson(response.parseAsString(), LinkedTreeMap.class);
-
-                for (Map.Entry<String, ArrayList<LinkedTreeMap<String, Object>>> entry : list.entrySet()) {
-                    if (TextUtils.equals(entry.getKey(), "documents")) {
-                        for (int i = 0 ; i < entry.getValue().size() ; i++) {
-                            Map<String, Object> hashMap = new HashMap<>();
-                            for (Map.Entry<String, Object> docEntry : entry.getValue().get(i).entrySet()) {
-                                switch (docEntry.getKey()) {
-                                    case "name": hashMap.put("nrTelefone", docEntry.getValue().toString().split("/")[8]);
-                                        break;
-                                    case"fields": LinkedTreeMap<String, LinkedTreeMap<String, Object>> treeMap = (LinkedTreeMap<String, LinkedTreeMap<String, Object>>) entry.getValue().get(i).get("fields");
-
-                                                  for (String key : treeMap.keySet()){
-                                                      LinkedTreeMap<String, Object> map = treeMap.get(key);
-
-                                                      for (String mKey : map.keySet()) {
-                                                          hashMap.put(key, map.get(mKey));
-                                                      }
-                                                  }
-                                        break;
-                                }
-                            }
-
-                            maps.add(hashMap);
-                        }
+                    for (DocumentSnapshot documentSnapshot : task.getResult()) {
+                        map.put(documentSnapshot.getId(), documentSnapshot.getData());
                     }
-                }
 
-            } catch (Exception e) {
-                exception = e;
-            }
-
-            if (!emitter.isDisposed()) {
-                if (exception == null) {
-                    emitter.onSuccess(maps);
-                } else {
-                    emitter.onError(exception);
-                }
-            }
-        });
+                    if (!emitter.isDisposed()) {
+                        emitter.onSuccess(map);
+                    }
+                }).addOnFailureListener(e -> {
+                    if (!emitter.isDisposed()) {
+                        emitter.onError(e);
+                    }
+                }));
     }
 
     public static Maybe<Map<String, Object>> obterEstabelecimento (String id, HttpRequestFactory requestFactory, Gson gson) {
@@ -455,6 +421,23 @@ public class Barbearia {
         return Maybe.create(emitter -> firestore.collection("Barbearia")
                 .document(id)
                 .update("nome", nome)
+                .addOnCompleteListener(task -> {
+                    if (!emitter.isDisposed()) {
+                        emitter.onSuccess(task.isSuccessful());
+                    }
+                }).addOnFailureListener(e -> {
+                    if (!emitter.isDisposed()) {
+                        emitter.onError(e);
+                    }
+                }));
+    }
+
+    public static Maybe<Boolean> removerContacto(String id, String nrContacto, FirebaseFirestore firestore) {
+        return Maybe.create(emitter -> firestore.collection("Barbearia")
+                .document(id)
+                .collection("contactos")
+                .document(nrContacto)
+                .delete()
                 .addOnCompleteListener(task -> {
                     if (!emitter.isDisposed()) {
                         emitter.onSuccess(task.isSuccessful());

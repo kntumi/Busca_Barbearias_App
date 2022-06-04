@@ -32,7 +32,6 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.CancellationTokenSource;
-import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -208,10 +207,6 @@ public class MapsFragment extends DaggerFragment implements OnMapReadyCallback, 
             mMap.setOnMapLongClickListener(TextUtils.isEmpty(id) ? null : this);
         } catch (Exception e) {
             e.printStackTrace();
-        }
-
-        if (TextUtils.isEmpty(id)) {
-            return;
         }
     }
 
@@ -487,15 +482,11 @@ public class MapsFragment extends DaggerFragment implements OnMapReadyCallback, 
 
     @Override
     public void onInfoWindowClick(@NonNull Marker marker) {
-        BottomSheetDialogFragment fragment;
-        fragment = new BottomSheetDialogFragment();
-        fragment.show(getChildFragmentManager(), "currentFragment");
-
-        if (TextUtils.equals(fragment.getClass().getSimpleName(), "NonEstablishmentFragment")) {
-            Bundle bundle = new Bundle();
-            bundle.putString("id", String.valueOf(marker.getTag()));
-            getChildFragmentManager().setFragmentResult(fragment.getClass().getSimpleName(), bundle);
-        }
+        new LayoutFragment().show(getChildFragmentManager(), "currentFragment");
+        Bundle b = new Bundle();
+        b.putString("fragmentToLoad", "AboutFragment");
+        b.putString("id", String.valueOf(marker.getTag()));
+        getChildFragmentManager().setFragmentResult("LayoutFragment", b);
     }
 
     @Override

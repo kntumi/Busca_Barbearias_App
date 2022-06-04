@@ -2,10 +2,11 @@
 <layout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <LinearLayout
         android:id="@+id/layoutPrincipal"
         android:layout_width="match_parent"
         android:background="?android:colorBackground"
+        android:orientation="vertical"
         android:layout_height="wrap_content">
 
         <androidx.appcompat.widget.Toolbar
@@ -14,27 +15,10 @@
             android:layout_height="wrap_content"
             android:layout_marginEnd="12dp"
             android:layout_marginTop="18dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
             app:navigationIcon="@drawable/voltar_icn"
-            app:menu="@menu/inserir"
             app:title="Horário"
             app:titleTextAppearance="@style/textAppearanceBarra" />
 
-        <androidx.fragment.app.FragmentContainerView
-            android:id="@+id/layoutFragment"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
-            android:layout_marginStart="24dp"
-            android:layout_marginEnd="24dp"
-            android:layout_marginBottom="36dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/barra" />
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
+    </LinearLayout>
 
 </layout>

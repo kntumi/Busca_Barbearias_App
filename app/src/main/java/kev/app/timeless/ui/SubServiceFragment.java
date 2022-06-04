@@ -8,13 +8,14 @@ import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.databinding.DataBindingUtil;
-import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentResultListener;
-import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.DiffUtil;
+import androidx.recyclerview.widget.ItemTouchHelper;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
@@ -23,292 +24,282 @@ import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.inject.Inject;
+
+import dagger.android.support.DaggerFragment;
 import io.reactivex.disposables.Disposable;
-import io.reactivex.internal.operators.maybe.MaybeCallbackObserver;
 import kev.app.timeless.R;
-import kev.app.timeless.databinding.SubServiceBinding;
+import kev.app.timeless.databinding.LayoutDefaultBinding;
+import kev.app.timeless.di.viewModelFactory.ViewModelProvidersFactory;
 import kev.app.timeless.model.SubServiço;
-import kev.app.timeless.util.FragmentUtil;
+import kev.app.timeless.model.User;
+import kev.app.timeless.util.State;
+import kev.app.timeless.util.SubServiceAdapter;
+import kev.app.timeless.util.SubServiceListAdapter;
 import kev.app.timeless.viewmodel.MapViewModel;
 
-public class SubServiceFragment extends Fragment implements View.OnClickListener, EventListener<QuerySnapshot> {
-    private SubServiceBinding binding;
+public class SubServiceFragment extends DaggerFragment implements View.OnClickListener, EventListener<QuerySnapshot> {
+    private LayoutDefaultBinding binding;
     private MapViewModel viewModel;
-    private String id, idTipoServiço, idServiço;
+    private ItemTouchHelper itemTouchHelper;
+    private Disposable disposable;
+    private LinearLayoutManager linearLayoutManager;
     private ListenerRegistration listenerRegistration;
     private FragmentResultListener fragmentResultListener;
-    private ConstraintSet constraintSet;
-    private MaybeCallbackObserver<Map<String, Map<String, Object>>> callbackObserver;
-    private FragmentManager.FragmentLifecycleCallbacks fragmentLifecycleCallbacks;
     private Bundle bundle;
-    private MutableLiveData<List<SubServiço>> subServiços;
+    private String loggedInUserId;
+    private SubServiceAdapter subServiceAdapter;
+    private Observer<List<User>> observer;
+    private SubServiceListAdapter subServiceListAdapter;
+
+    @Inject
+    ViewModelProvidersFactory providerFactory;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        binding = DataBindingUtil.inflate(inflater, R.layout.sub_service, container, false);
+        binding = DataBindingUtil.inflate(inflater, R.layout.layout_default, container, false);
         return binding.layoutPrincipal;
     }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        bundle = new Bundle();
-        viewModel = new ViewModelProvider(requireActivity(), ((MapsFragment) requireParentFragment().requireParentFragment().requireParentFragment()).providerFactory).get(MapViewModel.class);
+        observer = this::observarUser;
+        viewModel = new ViewModelProvider(requireActivity(), providerFactory).get(MapViewModel.class);
         fragmentResultListener = this::observarResult;
-        subServiços = new MutableLiveData<>();
-        constraintSet = new ConstraintSet();
-        fragmentLifecycleCallbacks = new FragmentManager.FragmentLifecycleCallbacks() {
+        linearLayoutManager = new LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false);
+        subServiceAdapter = new SubServiceAdapter(new DiffUtil.ItemCallback<State>() {
             @Override
-            public void onFragmentResumed(@NonNull FragmentManager fm, @NonNull Fragment f) {
-                super.onFragmentResumed(fm, f);
-                if (f instanceof SubServiceListFragment) {
-                    subServiços.observeForever(((SubServiceListFragment) f).getObserver());
-                }
+            public boolean areItemsTheSame(@NonNull State oldItem, @NonNull State newItem) {
+                return false;
             }
 
             @Override
-            public void onFragmentPaused(@NonNull FragmentManager fm, @NonNull Fragment f) {
-                super.onFragmentPaused(fm, f);
-                if (f instanceof SubServiceListFragment) {
-                    subServiços.removeObserver(((SubServiceListFragment) f).getObserver());
-                }
+            public boolean areContentsTheSame(@NonNull State oldItem, @NonNull State newItem) {
+                return false;
             }
-        };
+        }, this);
+        binding.recyclerView.setLayoutManager(linearLayoutManager);
+        binding.recyclerView.setAdapter(subServiceAdapter);
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        getChildFragmentManager().registerFragmentLifecycleCallbacks(fragmentLifecycleCallbacks, false);
         requireParentFragment().getChildFragmentManager().setFragmentResultListener(getClass().getSimpleName(), this, fragmentResultListener);
         binding.barra.setNavigationOnClickListener(this);
-
-        if (constraintSet.getKnownIds().length != 0) {
-            constraintSet.applyTo(binding.layoutPrincipal);
-        }
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        getChildFragmentManager().unregisterFragmentLifecycleCallbacks(fragmentLifecycleCallbacks);
         requireParentFragment().getChildFragmentManager().clearFragmentResultListener(getClass().getSimpleName());
         binding.barra.setNavigationOnClickListener(null);
-        constraintSet.clone(binding.layoutPrincipal);
 
         if (listenerRegistration != null) {
             listenerRegistration.remove();
+        }
+
+        if (disposable != null) {
+            if (!disposable.isDisposed()) {
+                disposable.dispose();
+            }
+        }
+
+        if (itemTouchHelper != null) {
+            itemTouchHelper.attachToRecyclerView(null);
         }
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        bundle.clear();
-        fragmentLifecycleCallbacks = null;
+        binding.recyclerView.setAdapter(null);
+        binding.recyclerView.setLayoutManager(null);
         bundle = null;
-        constraintSet = null;
+        observer = null;
+        linearLayoutManager = null;
         viewModel = null;
+        subServiceListAdapter = null;
         fragmentResultListener = null;
         listenerRegistration = null;
-        callbackObserver = null;
-        subServiços = null;
-        id = null;
-        idServiço = null;
-        idTipoServiço = null;
+        subServiceAdapter = null;
+        itemTouchHelper = null;
         binding = null;
     }
 
-    private void observarResult(String requestKey, Bundle result) {
-        id = result.containsKey("id") ? result.getString("id") : null;
-        idServiço = result.containsKey("idServiço") ? result.getString("idServiço") : null;
-        idTipoServiço = result.containsKey("idTipoServiço") ? result.getString("idTipoServiço") : null;
+    @Override
+    public void onViewStateRestored(@Nullable Bundle savedInstanceState) {
+        super.onViewStateRestored(savedInstanceState);
+        bundle = savedInstanceState == null ? new Bundle() : savedInstanceState.getBundle("bundle");
+    }
 
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putBundle("bundle", new Bundle(bundle));
+    }
+
+    public Observer<List<User>> getObserver() {
+        return observer;
+    }
+
+    private void observarUser(List<User> users) {
+        loggedInUserId = users.size() == 0 ? null : users.get(0).getId();
+
+        binding.barra.setOnMenuItemClickListener(null);
+
+        if (users.size() != 0) {
+            if (binding.barra.getMenu().size() == 0) {
+                binding.barra.inflateMenu(R.menu.add);
+            }
+
+            binding.barra.setOnMenuItemClickListener(item -> {
+                requireParentFragment().getChildFragmentManager().beginTransaction().replace(R.id.layoutPrincipal, new InsertSubServiceFragment()).commit();
+                return true;
+            });
+
+            return;
+        }
+
+        for (int i = 0 ; i < binding.barra.getMenu().size() ; i++) {
+            binding.barra.getMenu().removeItem(i);
+        }
+    }
+
+    private void observarResult(String requestKey, Bundle result) {
+        bundle = bundle.size() == 0 ? result : bundle;
+
+        if (viewModel.getServiços().containsKey(bundle.getString("id"))) {
+            Map<String, Map<String, Object>> map = viewModel.getServiços().get(bundle.getString("id"));
+
+            if (map.containsKey(bundle.getString("selectedService"))) {
+                binding.barra.setTitle("Tipos de "+map.get(result.getString("selectedService")).get("nome"));
+            }
+        }
+
+        if (viewModel.getTiposServiços().containsKey(bundle.getString("selectedService"))) {
+            Map<String, Map<String, Object>> map = viewModel.getTiposServiços().get(bundle.getString("selectedService"));
+
+            if (map.containsKey(bundle.getString("selectedTypeService"))) {
+                binding.barra.setTitle(binding.barra.getTitle()+" de "+map.get(bundle.getString("selectedTypeService")).get("nome"));
+            }
+        }
+
+        State state;
+
+        if (viewModel.getSubServiços().containsKey(bundle.getString("selectedTypeService"))) {
+            state = viewModel.getSubServiços().get(bundle.getString("selectedTypeService")).size() == 0 ? State.Empty : State.Loaded;
+        } else {
+            state = State.Loading;
+        }
+
+        if (state != State.Loaded) {
+            subServiceAdapter.submitList(Collections.singletonList(state), () -> {
+                List<State> states = subServiceAdapter.getCurrentList();
+
+                for (int  i = 0 ; i < states.size(); i++) {
+                    if (states.get(i) == State.Loading) {
+                        obterSubServicos(bundle);
+                    }
+                }
+            });
+
+            return;
+        }
+        
+        onLoad();
+    }
+
+    private void obterSubServicos(Bundle bundle) {
+        if (disposable != null) {
+            disposable.dispose();
+        }
+
+        disposable = viewModel.getService().getBarbeariaService().obterSubServiços(bundle.getString("id"), bundle.getString("selectedService"), bundle.getString("selectedTypeService")).subscribe(stringMapMap -> {
+            viewModel.getSubServiços().put(bundle.getString("selectedTypeService"), stringMapMap);
+
+            if (stringMapMap.size() != 0) {
+                onLoad();
+                return;
+            }
+
+            subServiceAdapter.submitList(Collections.singletonList(State.Empty), this::adicionarListener);
+        }, throwable -> subServiceAdapter.submitList(Collections.singletonList(State.Error)));
+    }
+
+    private void onLoad() {
         if (listenerRegistration != null) {
             listenerRegistration.remove();
         }
 
-        if (TextUtils.isEmpty(id) || TextUtils.isEmpty(idServiço)) {
-            return;
-        }
-
-        if (!viewModel.getTiposServiços().containsKey(idServiço)) {
-            getChildFragmentManager()
-                    .beginTransaction()
-                    .replace(R.id.layoutFragment, new TextFragment())
-                    .runOnCommit(() -> {
-                        Bundle bundle = new Bundle();
-                        bundle.putString("txt", "Sem nenhum tipo de "+String.valueOf(viewModel.getServiços().get(id).get(idServiço).get("nome")).toLowerCase()+" para escolher");
-                        getChildFragmentManager().setFragmentResult("TextFragment", bundle);
-                    }).commit();
-
-            return;
-        }
-
-        if (TextUtils.isEmpty(idTipoServiço)) {
-            getChildFragmentManager()
-                    .beginTransaction()
-                    .replace(R.id.layoutFragment, new TextFragment(), "currentFragment")
-                    .runOnCommit(() -> {
-                        Bundle bundle = new Bundle();
-                        bundle.putString("txt", "Não foi escolhido nenhum tipo de "+String.valueOf(viewModel.getServiços().get(id).get(idServiço).get("nome")).toLowerCase());
-                        getChildFragmentManager().setFragmentResult("TextFragment", bundle);
-                    })
-                    .commit();
-
-            return;
-        }
-
-        binding.barra.setTitle(viewModel.getServiços().containsKey(id) ? "Tipos de ".concat(String.valueOf(viewModel.getServiços().get(id).get(idServiço).get("nome")).concat(" de ").concat(String.valueOf(viewModel.getTiposServiços().get(idServiço).get(idTipoServiço).get("nome")))) : null);
-
-        if (getChildFragmentManager().getFragments().size() == 0) {
-            if (viewModel.getSubServiços().containsKey(idTipoServiço)) {
-                if (viewModel.getSubServiços().get(idTipoServiço).size() == 0) {
-                    getChildFragmentManager()
-                            .beginTransaction()
-                            .replace(R.id.layoutFragment, new TextFragment(), "currentFragment")
-                            .runOnCommit(() -> {
-                                Bundle bundle = new Bundle();
-                                bundle.putString("txt", "Sem tipos de "+String.valueOf(viewModel.getServiços().get(id).get(idServiço).get("nome")).toLowerCase()+" de "+String.valueOf(viewModel.getTiposServiços().get(idServiço).get(idTipoServiço).get("nome")).toLowerCase());
-                                getChildFragmentManager().setFragmentResult("TextFragment", bundle);
-                            }).commit();
-                } else {
-                    getChildFragmentManager()
-                            .beginTransaction()
-                            .replace(R.id.layoutFragment, new SubServiceListFragment(), "currentFragment")
-                            .runOnCommit(() -> {
-                                ArrayList<SubServiço> subServiçosDaDb = new ArrayList<>();
-
-                                for (Map.Entry<String, Map<String, Object>> entry: viewModel.getSubServiços().get(idTipoServiço).entrySet()) {
-                                    subServiçosDaDb.add(new SubServiço(String.valueOf(entry.getValue().get("nome")), Double.parseDouble(String.valueOf(entry.getValue().get("preco"))), entry.getKey()));
-                                }
-
-                                subServiços.setValue(subServiçosDaDb);
-                                listenerRegistration = viewModel.getService().getFirestore().collection("Barbearia").document(id).collection("servicos").document(idServiço).collection("tipos").document(idTipoServiço).collection("subservicos").addSnapshotListener(this);
-                            }).commit();
-                }
-            } else {
-                if (callbackObserver == null) {
-                    callbackObserver = new MaybeCallbackObserver<>(this::observarMap, this::observarErro, null);
+        if (subServiceListAdapter == null) {
+            subServiceListAdapter = new SubServiceListAdapter(new DiffUtil.ItemCallback<SubServiço>() {
+                @Override
+                public boolean areItemsTheSame(@NonNull SubServiço oldItem, @NonNull SubServiço newItem) {
+                    return false;
                 }
 
-                viewModel.getService().getBarbeariaService().obterSubServiços(id, idServiço, idTipoServiço).doOnSubscribe(this::observarDisposable).subscribe(callbackObserver);
-            }
-
-            return;
+                @Override
+                public boolean areContentsTheSame(@NonNull SubServiço oldItem, @NonNull SubServiço newItem) {
+                    return false;
+                }
+            });
         }
 
+        adicionarListener();
 
-        String actual = getChildFragmentManager().getFragments().get(getChildFragmentManager().getFragments().size() - 1).getClass().getSimpleName();
-
-        if (TextUtils.equals(actual, "TextFragment")) {
-            if (viewModel.getSubServiços().containsKey(idTipoServiço)) {
-                if (viewModel.getSubServiços().get(idTipoServiço).size() == 0) {
-                    getChildFragmentManager()
-                            .beginTransaction()
-                            .replace(R.id.layoutFragment, new TextFragment(), "currentFragment")
-                            .runOnCommit(() -> {
-                                Bundle bundle = new Bundle();
-                                bundle.putString("txt", "Sem tipos de "+String.valueOf(viewModel.getServiços().get(id).get(idServiço).get("nome")).toLowerCase()+" de "+String.valueOf(viewModel.getTiposServiços().get(idServiço).get(idTipoServiço).get("nome")).toLowerCase());
-                                getChildFragmentManager().setFragmentResult("TextFragment", bundle);
-                            }).commit();
-                } else {
-                    getChildFragmentManager()
-                            .beginTransaction()
-                            .replace(R.id.layoutFragment, new SubServiceListFragment(), "currentFragment")
-                            .runOnCommit(() -> {
-                                ArrayList<SubServiço> subServiçosDaDb = new ArrayList<>();
-
-                                for (Map.Entry<String, Map<String, Object>> entry: viewModel.getSubServiços().get(idTipoServiço).entrySet()) {
-                                    subServiçosDaDb.add(new SubServiço(String.valueOf(entry.getValue().get("nome")), Double.parseDouble(String.valueOf(entry.getValue().get("preco"))), entry.getKey()));
-                                }
-
-                                subServiços.setValue(subServiçosDaDb);
-                            }).commit();
-                }
-            } else {
-                if (callbackObserver == null) {
-                    callbackObserver = new MaybeCallbackObserver<>(this::observarMap, this::observarErro, null);
+        if (!TextUtils.isEmpty(loggedInUserId) && itemTouchHelper == null) {
+            itemTouchHelper = new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
+                @Override
+                public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
+                    return false;
                 }
 
-                viewModel.getService().getBarbeariaService().obterSubServiços(id, idServiço, idTipoServiço).doOnSubscribe(this::observarDisposable).subscribe(callbackObserver);
-
-                return;
-            }
-        } else {
-            switch (actual) {
-                case "LoadingFragment":
-                    break;
-                case "SubServiceListFragment":
-                    if (subServiços.getValue() == null || subServiços.getValue().size() == 0) {
-                        ArrayList<SubServiço> subServiçosDaDb = new ArrayList<>();
-
-                        for (Map.Entry<String, Map<String, Object>> entry : viewModel.getSubServiços().get(idTipoServiço).entrySet()) {
-                            subServiçosDaDb.add(new SubServiço(String.valueOf(entry.getValue().get("nome")), Double.parseDouble(String.valueOf(entry.getValue().get("preco"))), entry.getKey()));
-                        }
-
-                        subServiços.setValue(subServiçosDaDb);
+                @Override
+                public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+                    switch (direction) {
+                        case ItemTouchHelper.LEFT:
+                            break;
+                        case ItemTouchHelper.RIGHT:
+                            break;
                     }
-                    break;
-            }
+                }
+            });
         }
 
-        listenerRegistration = viewModel.getService().getFirestore().collection("Barbearia").document(id).collection("servicos").document(idServiço).collection("tipos").document(idTipoServiço).collection("subservicos").addSnapshotListener(this);
-    }
-
-    private void observarErro(Throwable throwable) {
-        bundle.putInt("value", 1);
-        getChildFragmentManager().setFragmentResult("LoadingFragment", bundle);
-    }
-
-    private void observarMap(Map<String, Map<String, Object>> stringMapMap) {
-        viewModel.getSubServiços().put(idTipoServiço, stringMapMap);
-
-        if (stringMapMap.size() == 0) {
-            getChildFragmentManager()
-                    .beginTransaction()
-                    .replace(R.id.layoutFragment, new TextFragment(), "currentFragment")
-                    .runOnCommit(() -> {
-                        Bundle bundle = new Bundle();
-                        bundle.putString("txt", "Sem tipos de "+String.valueOf(viewModel.getServiços().get(id).get(idServiço).get("nome")).toLowerCase()+" de "+String.valueOf(viewModel.getTiposServiços().get(idServiço).get(idTipoServiço).get("nome")).toLowerCase());
-                        getChildFragmentManager().setFragmentResult("TextFragment", bundle);
-                    }).commit();
-        } else {
-            getChildFragmentManager()
-                    .beginTransaction()
-                    .replace(R.id.layoutFragment, new SubServiceListFragment(), "currentFragment")
-                    .runOnCommit(() -> {
-                        ArrayList<SubServiço> subServiçosDaDb = new ArrayList<>();
-
-                        for (Map.Entry<String, Map<String, Object>> entry: stringMapMap.entrySet()) {
-                            subServiçosDaDb.add(new SubServiço(String.valueOf(entry.getValue().get("nome")), Double.parseDouble(String.valueOf(entry.getValue().get("preco"))), entry.getKey()));
-                        }
-
-                        subServiços.setValue(subServiçosDaDb);
-                    }).commit();
+        if (itemTouchHelper != null) {
+            itemTouchHelper.attachToRecyclerView(binding.recyclerView);
         }
 
-        listenerRegistration = viewModel.getService().getFirestore().collection("Barbearia").document(id).collection("servicos").document(idServiço).collection("tipos").document(idTipoServiço).collection("subservicos").addSnapshotListener(this);
+        if (binding.recyclerView.getAdapter() == subServiceListAdapter) {
+            return;
+        }
+
+        binding.recyclerView.setAdapter(subServiceListAdapter);
+
+        ArrayList<SubServiço> subServicos = new ArrayList<>();
+
+        for (Map.Entry<String, Map<String, Object>> entry: viewModel.getSubServiços().get(bundle.getString("selectedTypeService")).entrySet()) {
+            subServicos.add(new SubServiço(String.valueOf(entry.getValue().get("nome")), Double.parseDouble(String.valueOf(entry.getValue().get("preco"))), entry.getKey()));
+        }
+
+        subServiceListAdapter.submitList(subServicos);
     }
 
-    private void observarDisposable(Disposable disposable) {
-        FragmentUtil.observarFragment("LoadingFragment", getChildFragmentManager(), R.id.layoutFragment);
-        bundle.putInt("value", 0);
-        getChildFragmentManager().setFragmentResult("LoadingFragment", bundle);
+    private void adicionarListener () {
+        listenerRegistration = viewModel.getService().getFirestore().collection("Barbearia").document(bundle.getString("id")).collection("servicos").document(bundle.getString("selectedService")).collection("tipos").document(bundle.getString("selectedTypeService")).collection("subservicos").addSnapshotListener(this);
     }
 
     @Override
     public void onClick(View view) {
         switch (view.getId()) {
-            case R.id.retryBtn: if (callbackObserver == null) {
-                                    callbackObserver = new MaybeCallbackObserver<>(this::observarMap, this::observarErro, null);
-                                }
-
-                                viewModel.getService().getBarbeariaService().obterSubServiços(id, idServiço, idTipoServiço).doOnSubscribe(this::observarDisposable).subscribe(callbackObserver);
+            case R.id.retryBtn: obterSubServicos(bundle);
                 break;
             case View.NO_ID: requireParentFragment().getChildFragmentManager().beginTransaction().replace(R.id.layoutPrincipal, new TypeServicesFragment()).commit();
                 break;
@@ -319,21 +310,15 @@ public class SubServiceFragment extends Fragment implements View.OnClickListener
     public void onEvent(@Nullable QuerySnapshot value, @Nullable FirebaseFirestoreException error) {
         try {
             if (value.isEmpty()) {
-                if (viewModel.getSubServiços().containsKey(idTipoServiço)) {
-                    viewModel.getSubServiços().get(idTipoServiço).clear();
+                if (viewModel.getSubServiços().containsKey(bundle.getString("selectedTypeService"))) {
+                    viewModel.getSubServiços().get(bundle.getString("selectedTypeService")).clear();
                 }
 
-                if (subServiços.getValue().size() == 0) {
-                    subServiços.getValue().clear();
+                if (binding.recyclerView.getAdapter() != subServiceAdapter) {
+                    binding.recyclerView.setAdapter(subServiceAdapter);
                 }
 
-                if (getChildFragmentManager().getFragments().size() == 0 || !TextUtils.equals(getChildFragmentManager().getFragments().get(getChildFragmentManager().getFragments().size() - 1).getClass().getSimpleName(), "TextFragment")) {
-                    getChildFragmentManager().beginTransaction().replace(R.id.layoutFragment, new TextFragment()).runOnCommit(() -> {
-                        Bundle bundle = new Bundle();
-                        bundle.putString("txt", "Sem tipos de "+String.valueOf(viewModel.getServiços().get(id).get(idServiço).get("nome")).toLowerCase()+" de "+String.valueOf(viewModel.getTiposServiços().get(idServiço).get(idTipoServiço).get("nome")).toLowerCase());
-                        getChildFragmentManager().setFragmentResult("TextFragment", bundle);
-                    }).commit();
-                }
+                subServiceAdapter.submitList(Collections.singletonList(State.Empty));
 
                 return;
             }
@@ -344,27 +329,26 @@ public class SubServiceFragment extends Fragment implements View.OnClickListener
                 map.put(documentSnapshot.getId(), documentSnapshot.getData());
             }
 
-            if (!viewModel.getSubServiços().containsKey(idTipoServiço)) {
-                viewModel.getSubServiços().put(idTipoServiço, new HashMap<>());
+            if (viewModel.getSubServiços().containsKey(bundle.getString("selectedTypeService"))) {
+                if (map.equals(viewModel.getSubServiços().get(bundle.getString("selectedTypeService")))) {
+                    return;
+                }
             }
 
-            if (viewModel.getSubServiços().get(idTipoServiço).equals(map)) {
-                return;
-            } else {
-                viewModel.getSubServiços().get(idTipoServiço).putAll(map);
-            }
+            viewModel.getSubServiços().put(bundle.getString("selectedTypeService"), map);
 
-            ArrayList<SubServiço> subServiçosDaDb = new ArrayList<>();
+            ArrayList<SubServiço> subServicos = new ArrayList<>();
 
             for (Map.Entry<String, Map<String, Object>> entry: map.entrySet()) {
-                subServiçosDaDb.add(new SubServiço(String.valueOf(entry.getValue().get("nome")), Double.parseDouble(String.valueOf(entry.getValue().get("preco"))), entry.getKey()));
+                subServicos.add(new SubServiço(String.valueOf(entry.getValue().get("nome")), Double.parseDouble(String.valueOf(entry.getValue().get("preco"))), entry.getKey()));
             }
 
-            subServiços.setValue(subServiçosDaDb);
-
-            if (getChildFragmentManager().getFragments().size() == 0 || !TextUtils.equals(getChildFragmentManager().getFragments().get(getChildFragmentManager().getFragments().size() - 1).getClass().getSimpleName(), "SubServiceListFragment")) {
-                getChildFragmentManager().beginTransaction().replace(R.id.layoutFragment, new SubServiceListFragment()).commit();
+            if (binding.recyclerView.getAdapter() != subServiceListAdapter) {
+                binding.recyclerView.setAdapter(subServiceListAdapter);
             }
+
+            subServiceListAdapter.submitList(subServicos);
+
         } catch (Exception e) {
             e.printStackTrace();
         }

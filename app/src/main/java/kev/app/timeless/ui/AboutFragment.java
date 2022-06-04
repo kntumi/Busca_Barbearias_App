@@ -39,7 +39,7 @@ import kev.app.timeless.util.Info;
 import kev.app.timeless.util.State;
 import kev.app.timeless.viewmodel.MapViewModel;
 
-public class AboutFragment extends DaggerFragment implements View.OnClickListener, State<AboutFragment.State>, Info {
+public class AboutFragment extends DaggerFragment implements View.OnClickListener, Info {
     private FragmentAboutBinding binding;
     private FragmentResultListener parentResultListener;
     private Observer<List<User>> observer;
@@ -81,7 +81,7 @@ public class AboutFragment extends DaggerFragment implements View.OnClickListene
             public boolean areContentsTheSame(@NonNull State oldItem, @NonNull State newItem) {
                 return false;
             }
-        }, this, this, this);
+        }, this, this);
         binding.recyclerView.setLayoutManager(new LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false));
         binding.recyclerView.setAdapter(aboutAdapter);
     }
@@ -134,23 +134,6 @@ public class AboutFragment extends DaggerFragment implements View.OnClickListene
     private void observarParent(String requestKey, Bundle result) {
         bundle = bundle == null || bundle.size() == 0 ? result : bundle;
 
-        if (listenerRegistration != null) {
-            listenerRegistration.remove();
-            listenerRegistration = null;
-        }
-
-        if (disposable != null) {
-            if (!disposable.isDisposed()) {
-                disposable.dispose();
-            }
-
-            disposable = null;
-        }
-
-        if (TextUtils.isEmpty(result.getString("id"))) {
-            return;
-        }
-
         if (state == null) {
             state = viewModel.getEstabelecimentos().containsKey(result.getString("id")) ? State.Loaded : State.Loading;
         }
@@ -197,10 +180,6 @@ public class AboutFragment extends DaggerFragment implements View.OnClickListene
     }
 
     private void observarUser(List<User> users) {
-        if (users.size() == 0) {
-            requireParentFragment().getChildFragmentManager().beginTransaction().remove(this).commit();
-        }
-
         loggedInUserId = users.size() == 0 ? null : users.get(0).getId();
     }
 
@@ -233,18 +212,7 @@ public class AboutFragment extends DaggerFragment implements View.OnClickListene
     }
 
     @Override
-    public State value() {
-        return state;
-    }
-
-    @Override
     public Boolean isUserLoggedIn() {
-        return bundle == null ? null : TextUtils.equals(bundle.getString("id"), loggedInUserId);
-    }
-
-    public enum State {
-        Loading,
-        Error,
-        Loaded
+        return bundle != null && TextUtils.equals(bundle.getString("id"), loggedInUserId);
     }
 }

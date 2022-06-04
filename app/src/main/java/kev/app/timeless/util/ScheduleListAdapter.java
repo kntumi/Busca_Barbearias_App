@@ -4,59 +4,57 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CompoundButton;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.android.material.chip.Chip;
-
 import java.util.Calendar;
 
 import kev.app.timeless.R;
 import kev.app.timeless.model.Horário;
 
-public class ScheduleAdapter extends ListAdapter<Horário, ScheduleAdapter.ScheduleViewHolder> {
+public class ScheduleListAdapter extends ListAdapter<Horário, ScheduleListAdapter.ScheduleViewHolder> {
     private CompoundButton.OnCheckedChangeListener onCheckedChangeListener;
+    private View.OnLongClickListener onLongClickListener;
 
-    public ScheduleAdapter(@NonNull DiffUtil.ItemCallback<Horário> diffCallback, CompoundButton.OnCheckedChangeListener onCheckedChangeListener) {
+    public ScheduleListAdapter(@NonNull DiffUtil.ItemCallback<Horário> diffCallback, CompoundButton.OnCheckedChangeListener onCheckedChangeListener, View.OnLongClickListener onLongClickListener) {
         super(diffCallback);
         this.onCheckedChangeListener = onCheckedChangeListener;
+        this.onLongClickListener = onLongClickListener;
     }
 
     @NonNull
     @Override
-    public ScheduleViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        return new ScheduleViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.layout_schedule_item, parent, false));
+    public ScheduleListAdapter.ScheduleViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        return new ScheduleListAdapter.ScheduleViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.layout_schedule_item, parent, false));
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ScheduleViewHolder holder, int positionViewHolder) {
+    public void onBindViewHolder(@NonNull ScheduleListAdapter.ScheduleViewHolder holder, int positionViewHolder) {
         holder.atualizarViews(holder.itemView.findViewById(R.id.txt), getItem(positionViewHolder));
     }
 
     @Override
-    public void onViewAttachedToWindow(@NonNull ScheduleViewHolder holder) {
+    public void onViewAttachedToWindow(@NonNull ScheduleListAdapter.ScheduleViewHolder holder) {
         super.onViewAttachedToWindow(holder);
-        holder.chip.setOnCheckedChangeListener(onCheckedChangeListener);
+        holder.itemView.setOnLongClickListener(onLongClickListener);
     }
 
     @Override
-    public void onViewDetachedFromWindow(@NonNull ScheduleViewHolder holder) {
+    public void onViewDetachedFromWindow(@NonNull ScheduleListAdapter.ScheduleViewHolder holder) {
         super.onViewDetachedFromWindow(holder);
-        holder.chip.setOnCheckedChangeListener(null);
+        holder.itemView.setOnLongClickListener(null);
     }
 
     public static class ScheduleViewHolder extends RecyclerView.ViewHolder {
-        private Chip chip;
-
         public ScheduleViewHolder(@NonNull View itemView) {
             super(itemView);
-            this.chip =  itemView.findViewById(R.id.txt);
         }
 
-        public void atualizarViews(Chip txtDiaSemana, Horário horário) {
+        public void atualizarViews(TextView txtDiaSemana, Horário horário) {
             switch (horário.getDia()) {
                 case Calendar.SUNDAY: txtDiaSemana.setText("Dom");
                     break;

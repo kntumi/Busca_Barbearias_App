@@ -5,19 +5,23 @@ import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
+import android.widget.CompoundButton;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.constraintlayout.widget.ConstraintSet;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.databinding.DataBindingUtil;
-import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentResultListener;
-import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.DiffUtil;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.slider.RangeSlider;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestoreException;
@@ -29,27 +33,36 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.inject.Inject;
+
+import dagger.android.support.DaggerFragment;
 import io.reactivex.disposables.Disposable;
-import io.reactivex.internal.operators.maybe.MaybeCallbackObserver;
 import kev.app.timeless.R;
 import kev.app.timeless.databinding.FragmentScheduleBinding;
+import kev.app.timeless.di.viewModelFactory.ViewModelProvidersFactory;
 import kev.app.timeless.model.Horário;
 import kev.app.timeless.model.User;
-import kev.app.timeless.util.FragmentUtil;
+import kev.app.timeless.util.ScheduleAdapter;
+import kev.app.timeless.util.State;
 import kev.app.timeless.viewmodel.MapViewModel;
 
-public class ScheduleFragment extends Fragment implements View.OnClickListener, EventListener<QuerySnapshot> {
+public class ScheduleFragment extends DaggerFragment implements View.OnClickListener, View.OnLongClickListener, CompoundButton.OnCheckedChangeListener, EventListener<QuerySnapshot> {
     private FragmentScheduleBinding binding;
-    private ConstraintSet constraintSet;
     private ListenerRegistration listenerRegistration;
     private Bundle bundle;
-    private MutableLiveData<List<Horário>> horário;
-    private FragmentManager.FragmentLifecycleCallbacks fragmentLifecycleCallbacks;
-    private FragmentResultListener childResultListener, parentResultListener;
+    private FragmentResultListener parentResultListener;
     private Observer<List<User>> observer;
+    private Map<State, View> map;
+    private LinearLayoutManager linearLayoutManager;
     private String loggedInUserId;
     private Disposable disposable;
+    private ScheduleAdapter scheduleAdapter;
     private MapViewModel viewModel;
+    private ViewTreeObserver.OnGlobalLayoutListener onGlobalLayoutListener;
+    private List<Float> values;
+
+    @Inject
+    ViewModelProvidersFactory providerFactory;
 
     @Nullable
     @Override
@@ -61,51 +74,27 @@ public class ScheduleFragment extends Fragment implements View.OnClickListener, 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        viewModel = new ViewModelProvider(requireActivity(), ((MapsFragment) requireParentFragment().requireParentFragment()).providerFactory).get(MapViewModel.class);
-        bundle = new Bundle();
-        observer = this::observarUser;
+        viewModel = new ViewModelProvider(requireActivity(), providerFactory).get(MapViewModel.class);
+        observer = users -> loggedInUserId = users.size() == 0 ? null : users.get(users.size() - 1).getId();
         parentResultListener = this::observarParent;
-        childResultListener = this::observarChild;
-        horário = new MutableLiveData<>(new ArrayList<>());
-        constraintSet = new ConstraintSet();
-        fragmentLifecycleCallbacks = new FragmentManager.FragmentLifecycleCallbacks() {
-            @Override
-            public void onFragmentResumed(@NonNull FragmentManager fm, @NonNull Fragment f) {
-                super.onFragmentResumed(fm, f);
-                if (f instanceof ScheduleListFragment) {
-                    horário.observeForever(((ScheduleListFragment) f).getObserver());
-                }
-            }
-
-            @Override
-            public void onFragmentPaused(@NonNull FragmentManager fm, @NonNull Fragment f) {
-                super.onFragmentPaused(fm, f);
-                if (f instanceof ScheduleListFragment) {
-                    horário.removeObserver(((ScheduleListFragment) f).getObserver());
-                }
-            }
-        };
+        map = new HashMap<>();
+        onGlobalLayoutListener = this::observarLayout;
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        if (constraintSet.getKnownIds().length != 0) {
-            constraintSet.applyTo(binding.layoutPrincipal);
-        }
-
-        getChildFragmentManager().registerFragmentLifecycleCallbacks(fragmentLifecycleCallbacks, false);
-        getChildFragmentManager().setFragmentResultListener(getClass().getSimpleName(), this, childResultListener);
         requireParentFragment().getChildFragmentManager().setFragmentResultListener(getClass().getSimpleName(), this, parentResultListener);
+        binding.barra.setNavigationOnClickListener(this);
+        binding.layoutPrincipal.getViewTreeObserver().addOnGlobalLayoutListener(onGlobalLayoutListener);
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        getChildFragmentManager().unregisterFragmentLifecycleCallbacks(fragmentLifecycleCallbacks);
-        getChildFragmentManager().clearFragmentResultListener(getClass().getSimpleName());
         requireParentFragment().getChildFragmentManager().clearFragmentResultListener(getClass().getSimpleName());
-        constraintSet.clone(binding.layoutPrincipal);
+        binding.barra.setNavigationOnClickListener(null);
+        binding.layoutPrincipal.getViewTreeObserver().removeOnGlobalLayoutListener(onGlobalLayoutListener);
 
         if (disposable != null) {
             if (!disposable.isDisposed()) {
@@ -117,200 +106,380 @@ public class ScheduleFragment extends Fragment implements View.OnClickListener, 
 
         if (listenerRegistration != null) {
             listenerRegistration.remove();
+        }
+
+        if (map.containsKey(State.Error)) {
+            ConstraintLayout layout = (ConstraintLayout) map.get(State.Error);
+
+            for (int i = 0 ; i < layout.getChildCount() ; i++) {
+                View v = layout.getChildAt(i);
+
+                if (!v.hasOnClickListeners()) {
+                    continue;
+                }
+
+                v.setOnClickListener(null);
+            }
         }
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        map.clear();
         bundle.clear();
+        linearLayoutManager = null;
         loggedInUserId = null;
         disposable = null;
+        onGlobalLayoutListener = null;
+        map = null;
         observer = null;
-        fragmentLifecycleCallbacks = null;
-        childResultListener = null;
+        scheduleAdapter = null;
         parentResultListener = null;
-        horário = null;
         bundle = null;
+        values = null;
         listenerRegistration = null;
-        constraintSet = null;
         viewModel = null;
         binding = null;
+    }
+
+    @Override
+    public void onViewStateRestored(@Nullable Bundle savedInstanceState) {
+        super.onViewStateRestored(savedInstanceState);
+        bundle = savedInstanceState == null ? new Bundle() : savedInstanceState.getBundle("bundle");
+    }
+
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putBundle("bundle", new Bundle(bundle));
     }
 
     public Observer<List<User>> getObserver() {
         return observer;
     }
 
-    private void observarUser(List<User> users) {
-        loggedInUserId = users.size() == 0 ? null : users.get(users.size() - 1).getId();
-
-        if (bundle == null) {
-            return;
-        }
-
-        if (TextUtils.equals(loggedInUserId, bundle.getString("id"))) {
-            binding.barra.inflateMenu(R.menu.add);
-            return;
-        }
-
-        for (int i = 0 ; i < binding.barra.getMenu().size() ; i++) {
-            binding.barra.getMenu().removeItem(i);
-        }
-    }
-
     private void observarParent(String requestKey, Bundle result) {
-        bundle = result;
+        bundle = bundle.size() == 0 ? result : bundle;
 
-        if (disposable != null) {
-            if (!disposable.isDisposed()) {
-                disposable.dispose();
-            }
+        State state;
 
-            disposable = null;
+        if (viewModel.getHorários().containsKey(bundle.getString("id"))) {
+            state = viewModel.getHorários().get(bundle.getString("id")).size() == 0 ? State.Empty : State.Loaded;
+        } else {
+            state = State.Loading;
         }
 
-        if (listenerRegistration != null) {
-            listenerRegistration.remove();
-        }
-
-        if (TextUtils.isEmpty(bundle.getString("id"))) {
-            return;
-        }
-
-        if (getChildFragmentManager().getFragments().size() == 0) {
-            if (viewModel.getHorários().containsKey(bundle.getString("id"))) {
-                if (viewModel.getHorários().get(bundle.getString("id")).size() == 0) {
-                    getChildFragmentManager()
-                            .beginTransaction()
-                            .replace(R.id.layoutFragment, new TextFragment(), "currentFragment")
-                            .runOnCommit(() -> {
-                                Bundle bundle = new Bundle();
-                                bundle.putString("txt", "Sem horário disponível");
-                                getChildFragmentManager().setFragmentResult("TextFragment", bundle);
-                            }).commit();
-                } else {
-                    ArrayList<Horário> hs = new ArrayList<>();
-                    for (Map.Entry<String, Map<String, Double>> entry : viewModel.getHorários().get(bundle.getString("id")).entrySet()) {
-                        Horário h = new Horário(Integer.parseInt(entry.getKey()));
-                        for (Map.Entry<String, Double> entry1 : entry.getValue().entrySet()) {
-                            switch (entry1.getKey()) {
-                                case "horaAbertura":
-                                    h.setHoraAbertura(entry1.getValue());
-                                    break;
-                                case "horaEncerramento":
-                                    h.setHoraEncerramento(entry1.getValue());
-                                    break;
-                            }
-                        }
-
-                        hs.add(h);
-                    }
-
-                    getChildFragmentManager()
-                            .beginTransaction()
-                            .replace(R.id.layoutFragment, new ScheduleListFragment())
-                            .runOnCommit(() -> horário.setValue(hs))
-                            .commit();
-                }
-
-                listenerRegistration = viewModel.getService().getFirestore().collection("Barbearia").document(bundle.getString("id")).collection("horario").addSnapshotListener(this);
-            } else {
-                disposable = viewModel.getService().getBarbeariaService().obterHorário(bundle.getString("id"))
-                        .doOnSubscribe(disposable -> {
-                            FragmentUtil.observarFragment("LoadingFragment", getChildFragmentManager(), R.id.layoutFragment);
-                            bundle.putInt("value", 0);
-                            getChildFragmentManager().setFragmentResult("LoadingFragment", bundle);
-                        })
-                        .subscribe(stringMapMap -> {
-                            viewModel.getHorários().put(bundle.getString("id"), stringMapMap);
-
-                            ArrayList<Horário> hs = new ArrayList<>();
-                            for (Map.Entry<String, Map<String, Double>> entry : stringMapMap.entrySet()) {
-                                Horário h = new Horário(Integer.parseInt(entry.getKey()));
-                                for (Map.Entry<String, Double> entry1 : entry.getValue().entrySet()) {
-                                    switch (entry1.getKey()) {
-                                        case "horaAbertura": h.setHoraAbertura(entry1.getValue());
-                                            break;
-                                        case "horaEncerramento": h.setHoraEncerramento(entry1.getValue());
-                                            break;
-                                    }
-                                }
-
-                                hs.add(h);
-                            }
-
-                            if (stringMapMap.size() == 0) {
-                                getChildFragmentManager().beginTransaction().replace(R.id.layoutFragment, new TextFragment(), "currentFragment").runOnCommit(() -> {
-                                    Bundle bundle = new Bundle();
-                                    bundle.putString("txt", "Sem horário disponível");
-                                    getChildFragmentManager().setFragmentResult("TextFragment", bundle);
-                                }).commit();
-                            } else {
-                                getChildFragmentManager().beginTransaction().replace(R.id.layoutFragment, new ScheduleListFragment()).runOnCommit(() -> horário.setValue(hs)).commit();
-                            }
-
-                            listenerRegistration = viewModel.getService().getFirestore().collection("Barbearia").document(bundle.getString("id")).collection("horario").addSnapshotListener(this);
-                        }, throwable -> {
-                            bundle.putInt("value", 1);
-                            getChildFragmentManager().setFragmentResult("LoadingFragment", bundle);
-                        });
-            }
-
-            return;
-        }
-
-        switch (getChildFragmentManager().getFragments().get(getChildFragmentManager().getFragments().size() - 1).getClass().getSimpleName()) {
-            case "LoadingFragment":
+        switch (state) {
+            case Loaded: onLoaded();
                 break;
-            case "ScheduleListFragment":
-                                            if (horário.getValue() == null || horário.getValue().size() == 0) {
-                                                ArrayList<Horário> hs = new ArrayList<>();
-                                                for (Map.Entry<String, Map<String, Double>> entry : viewModel.getHorários().get(bundle.getString("id")).entrySet()) {
-                                                    Horário h = new Horário(Integer.parseInt(entry.getKey()));
-                                                    for (Map.Entry<String, Double> entry1 : entry.getValue().entrySet()) {
-                                                        switch (entry1.getKey()) {
-                                                            case "horaAbertura": h.setHoraAbertura(entry1.getValue());
-                                                                break;
-                                                            case "horaEncerramento": h.setHoraEncerramento(entry1.getValue());
-                                                                break;
-                                                        }
-                                                    }
-
-                                                    hs.add(h);
-                                                }
-
-                                                horário.setValue(hs);
-
-                                                Bundle b = new Bundle();
-                                                if (result.containsKey(getClass().getSimpleName())) {
-                                                    if (result.getBundle(getClass().getSimpleName()).containsKey("ScheduleListFragment")) {
-                                                        if (result.getBundle(getClass().getSimpleName()).getBundle("ScheduleListFragment").containsKey("position")) {
-                                                            b.putInt("position", result.getBundle(getClass().getSimpleName()).getBundle("ScheduleListFragment").getInt("position"));
-                                                        }
-                                                    }
-                                                }
-
-                                                requireParentFragment().getChildFragmentManager().setFragmentResult(requireParentFragment().getClass().getSimpleName(), b);
-                                            }
+            case Empty: onEmpty();
                 break;
-            case "TextFragment":  Bundle bundle = new Bundle();
-                                  bundle.putString("txt", "Sem horário disponível");
-                                  getChildFragmentManager().setFragmentResult("TextFragment", bundle);
+            case Loading: onLoading();
                 break;
         }
-
-        listenerRegistration = viewModel.getService().getFirestore().collection("Barbearia").document(bundle.getString("id")).collection("horario").addSnapshotListener(this);
     }
 
-    private void observarChild(String requestKey, Bundle result) {
-        if (result.containsKey("idToRemove")) {
-            viewModel.getService().getBarbeariaService().removerHorario(bundle.getString("id"), result.getInt("idToRemove")).subscribe(new MaybeCallbackObserver<>(aBoolean -> {
-                if (!aBoolean) {
-                    Toast.makeText(requireActivity(), "", Toast.LENGTH_LONG).show();
-                }
-            }, Throwable::printStackTrace, null));
+    private void observarLayout() {
+        for (int i = 0 ; i < binding.layoutPrincipal.getChildCount() ; i++) {
+            View v = binding.layoutPrincipal.getChildAt(i);
+
+            if (v == binding.barra) {
+                continue;
+            }
+
+            switch (v.getId()) {
+                case R.id.layoutBarraProgresso:
+                    obterHorario(bundle);
+                    break;
+                case R.id.recyclerView:
+                    inicializarRecyclerView(v);
+                    break;
+                case R.id.layoutText:
+                    break;
+                case R.id.layoutError:
+                    break;
+                case R.id.slider:
+                    inicializarSlider(v);
+                    break;
+            }
         }
+    }
+
+    private void inicializarSlider(View v) {
+        RangeSlider slider = (RangeSlider) v;
+
+        if (values == null) {
+            values = new ArrayList<>();
+
+            for (int i = 7; i < 22; i++) {
+                for (int j = 0; j <= 55; j++) {
+                    if (j % 5 == 0) {
+                        if (String.valueOf(j).length() == 2) {
+                            values.add(Float.valueOf(i + "." + j));
+                        } else {
+                            values.add(Float.valueOf(i + ".0" + j));
+                        }
+                    }
+                }
+            }
+        }
+
+        slider.clearOnChangeListeners();
+
+        if (slider.getValues().isEmpty() || slider.getValues().size() == 1) {
+            slider.setValues(7f, 21.55f);
+        }
+
+        slider.addOnChangeListener(this::observarSlider);
+    }
+
+    private void observarSlider(RangeSlider slider, float v, boolean b) {
+        if (slider.getValues().get(0) >= 7) {
+            if (!values.contains(slider.getValues().get(0))) {
+                Float valor = null;
+                for (Float aFloat : values) {
+                    if (valor != null) {
+                        if (slider.getValues().get(0) >= aFloat) {
+                            valor = aFloat;
+                        }
+                    } else {
+                        valor = aFloat;
+                    }
+                }
+
+                slider.setValues(valor, slider.getValues().get(1));
+                return;
+            }
+        } else {
+            slider.setValues(7f, slider.getValues().get(1));
+            return;
+        }
+
+        if (slider.getValues().get(1) > 21.55f) {
+            slider.setValues(slider.getValues().get(0), 21.55f);
+            return;
+        } else {
+            if (!values.contains(slider.getValues().get(1))) {
+                Float valor = null;
+                for (Float aFloat : values) {
+                    if (valor != null) {
+                        if (slider.getValues().get(1) >= aFloat) {
+                            valor = aFloat;
+                        }
+                    } else {
+                        valor = aFloat;
+                    }
+                }
+
+                slider.setValues(slider.getValues().get(0), valor);
+                return;
+            }
+        }
+
+        String horaAbertura = "", horaEncerramento = "";
+
+        for (Float hora : slider.getValues()) {
+            String s = String.valueOf(hora);
+
+            if (s.length() - s.indexOf(".") == 2) {
+                switch (slider.getValues().indexOf(hora)) {
+                    case 0:
+                        horaAbertura = s.concat("0");
+                        break;
+                    case 1:
+                        horaEncerramento = s.concat("0");
+                        break;
+                }
+            } else {
+                switch (slider.getValues().indexOf(hora)) {
+                    case 0:
+                        horaAbertura = s;
+                        break;
+                    case 1:
+                        horaEncerramento = s;
+                        break;
+                }
+            }
+        }
+
+        binding.barra.setSubtitle("Aberto das ".concat(horaAbertura.replace(".", ":").concat(" até ").concat(horaEncerramento.replace(".", ":"))));
+    }
+
+    private void inicializarRecyclerView(View v) {
+        RecyclerView recyclerView = (RecyclerView) v;
+
+        if (scheduleAdapter == null) {
+            scheduleAdapter = new ScheduleAdapter(new DiffUtil.ItemCallback<Horário>() {
+                @Override
+                public boolean areItemsTheSame(@NonNull Horário oldItem, @NonNull Horário newItem) {
+                    return false;
+                }
+
+                @Override
+                public boolean areContentsTheSame(@NonNull Horário oldItem, @NonNull Horário newItem) {
+                    return false;
+                }
+            }, this);
+        }
+
+        try {
+            Map<String, Object> map = viewModel.getHorários().get(bundle.getString("id")).get(String.valueOf(bundle.getInt("selectedDay")));
+
+            if (map == null) {
+                throw new NullPointerException();
+            }
+
+        } catch (Exception e) {
+            binding.barra.setSubtitle("Selecione um dia da semana");
+
+            for (int i = 0; i < binding.barra.getMenu().size(); i++) {
+                binding.barra.getMenu().removeItem(i);
+            }
+        }
+
+        for (int j = 0; j < binding.layoutPrincipal.getChildCount(); j++) {
+            View view = binding.layoutPrincipal.getChildAt(j);
+
+            if (view.getId() != R.id.slider) {
+                continue;
+            }
+
+            view.setEnabled(!TextUtils.equals(binding.barra.getSubtitle(), "Selecione um dia da semana"));
+        }
+
+        if (scheduleAdapter.equals(recyclerView.getAdapter())) {
+            return;
+        }
+
+        if (linearLayoutManager == null) {
+            linearLayoutManager = new LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false);
+        }
+
+        if (!TextUtils.isEmpty(loggedInUserId)) {
+            LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            layoutParams.leftMargin = 16;
+            layoutParams.rightMargin = 16;
+            layoutParams.topMargin = 16;
+            layoutParams.bottomMargin = 36;
+
+            binding.layoutPrincipal.addView(View.inflate(requireActivity(), R.layout.slider, null), layoutParams);
+        }
+
+        recyclerView.setLayoutManager(linearLayoutManager);
+        recyclerView.setAdapter(scheduleAdapter);
+
+        ArrayList<Horário> hs = new ArrayList<>();
+
+        for (Map.Entry<String, Map<String, Object>> entry : viewModel.getHorários().get(bundle.getString("id")).entrySet()) {
+            Horário h = new Horário(Integer.parseInt(entry.getKey()));
+
+            for (Map.Entry<String, Object> entry1 : entry.getValue().entrySet()) {
+                switch (entry1.getKey()) {
+                    case "horaAbertura": h.setHoraAbertura(Double.parseDouble(String.valueOf(entry1.getValue())));
+                        break;
+                    case "horaEncerramento": h.setHoraEncerramento(Double.parseDouble(String.valueOf(entry1.getValue())));
+                        break;
+                }
+            }
+
+            hs.add(h);
+        }
+
+        scheduleAdapter.submitList(hs, this::adicionarListener);
+    }
+
+    private void onEmpty() {
+        if (!map.containsKey(State.Empty)) {
+            map.put(State.Empty, View.inflate(requireActivity(), R.layout.text, null));
+        }
+
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        layoutParams.leftMargin = 24;
+        layoutParams.rightMargin = 24;
+        layoutParams.topMargin = 24;
+
+        removerViewsDoLayout();
+
+        binding.layoutPrincipal.addView(map.get(State.Empty), layoutParams);
+    }
+
+    private void onLoading() {
+        if (!map.containsKey(State.Loading)) {
+            map.put(State.Loading, View.inflate(requireActivity(), R.layout.loading, null));
+        }
+
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        layoutParams.leftMargin = 24;
+        layoutParams.rightMargin = 24;
+        layoutParams.topMargin = 24;
+
+        removerViewsDoLayout();
+
+        binding.layoutPrincipal.addView(map.get(State.Loading), layoutParams);
+    }
+
+    private void removerViewsDoLayout() {
+        for (int i = 0 ; i < binding.layoutPrincipal.getChildCount() ; i++) {
+            View v = binding.layoutPrincipal.getChildAt(i);
+
+            if (v == binding.barra) {
+                continue;
+            }
+
+            binding.layoutPrincipal.removeViewAt(i);
+        }
+    }
+
+    private void onError() {
+        if (!map.containsKey(State.Error)) {
+            map.put(State.Error, View.inflate(requireActivity(), R.layout.error, null));
+        }
+
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        layoutParams.leftMargin = 24;
+        layoutParams.rightMargin = 24;
+        layoutParams.topMargin = 24;
+
+        removerViewsDoLayout();
+
+        binding.layoutPrincipal.addView(map.get(State.Error), layoutParams);
+    }
+
+    private void obterHorario(Bundle bundle) {
+        if (disposable != null) {
+            disposable.dispose();
+        }
+
+        disposable = viewModel.getService().getBarbeariaService().obterHorário(bundle.getString("id")).subscribe(stringMapMap -> {
+            viewModel.getHorários().put(bundle.getString("id"), stringMapMap);
+
+            if (stringMapMap.size() == 0) {
+                onEmpty();
+            } else {
+                onLoaded();
+            }
+        }, throwable -> onError());
+    }
+
+    private void onLoaded() {
+        if (!map.containsKey(State.Loaded)) {
+            map.put(State.Loaded, View.inflate(requireActivity(), R.layout.list, null));
+        }
+
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        layoutParams.leftMargin = 24;
+        layoutParams.rightMargin = 24;
+        layoutParams.topMargin = 24;
+        layoutParams.bottomMargin = TextUtils.isEmpty(loggedInUserId) ? 36 : 0;
+
+        removerViewsDoLayout();
+
+        binding.layoutPrincipal.addView(map.get(State.Loaded), layoutParams);
+    }
+
+    private void adicionarListener() {
+        listenerRegistration = viewModel.getService().getFirestore().collection("Barbearia").document(bundle.getString("id")).collection("horario").addSnapshotListener(this);
     }
 
     @Override
@@ -319,6 +488,8 @@ public class ScheduleFragment extends Fragment implements View.OnClickListener, 
             case R.id.inserir: new InsertScheduleFragment().show(getChildFragmentManager(), "currentFragment");
                 break;
             case R.id.retryBtn:
+                break;
+            case View.NO_ID: requireParentFragment().getChildFragmentManager().beginTransaction().replace(R.id.layoutPrincipal, new AboutFragment()).commit();
                 break;
         }
     }
@@ -331,61 +502,86 @@ public class ScheduleFragment extends Fragment implements View.OnClickListener, 
                     viewModel.getHorários().get(bundle.getString("id")).clear();
                 }
 
-                if (getChildFragmentManager().getFragments().size() == 0 || !TextUtils.equals(getChildFragmentManager().getFragments().get(getChildFragmentManager().getFragments().size() - 1).getClass().getSimpleName(), "TextFragment")) {
-                    getChildFragmentManager().beginTransaction().replace(R.id.layoutFragment, new TextFragment(), "currentFragment").runOnCommit(() -> {
-                        Bundle bundle = new Bundle();
-                        bundle.putString("txt", "Sem horário disponível");
-                        getChildFragmentManager().setFragmentResult("TextFragment", bundle);
-                    }).commit();
-                }
+                onEmpty();
 
                 return;
             }
 
-            Map<String, Map<String, Double>> map = new HashMap<>();
+            Map<String, Map<String, Object>> map = new HashMap<>();
 
-            ArrayList<Horário> list = new ArrayList<>();
             for (DocumentSnapshot documentSnapshot : value) {
-                Horário horário = new Horário(Integer.parseInt(documentSnapshot.getId()));
-                map.put(documentSnapshot.getId(), new HashMap<>());
+                map.put(documentSnapshot.getId(), documentSnapshot.getData());
+            }
 
-                for (String key : documentSnapshot.getData().keySet()) {
-                    map.get(documentSnapshot.getId()).put(key, documentSnapshot.getDouble(key));
+            if (viewModel.getHorários().containsKey(bundle.getString("id"))) {
+                if (map.equals(viewModel.getHorários().get(bundle.getString("id")))) {
+                    return;
+                }
+            }
 
-                    switch (key) {
-                        case "horaAbertura": horário.setHoraAbertura(documentSnapshot.getDouble(key));
+            viewModel.getHorários().put(bundle.getString("id"), map);
+
+            ArrayList<Horário> hs = new ArrayList<>();
+
+            for (Map.Entry<String, Map<String, Object>> entry : viewModel.getHorários().get(bundle.getString("id")).entrySet()) {
+                Horário h = new Horário(Integer.parseInt(entry.getKey()));
+
+                for (Map.Entry<String, Object> entry1 : entry.getValue().entrySet()) {
+                    switch (entry1.getKey()) {
+                        case "horaAbertura": h.setHoraAbertura(Double.parseDouble(String.valueOf(entry1.getValue())));
                             break;
-                        case "horaEncerramento": horário.setHoraEncerramento(documentSnapshot.getDouble(key));
+                        case "horaEncerramento": h.setHoraEncerramento(Double.parseDouble(String.valueOf(entry1.getValue())));
                             break;
                     }
                 }
 
-                list.add(horário);
+                hs.add(h);
             }
 
-            if (!viewModel.getHorários().containsKey(bundle.getString("id"))) {
-                viewModel.getHorários().put(bundle.getString("id"), new HashMap<>());
-            }
-
-            if (viewModel.getHorários().get(bundle.getString("id")).equals(map)) {
-                return;
-            } else {
-                viewModel.getHorários().get(bundle.getString("id")).putAll(map);
-            }
-
-            if (horário.getValue() != null) {
-                requireParentFragment().getChildFragmentManager().setFragmentResult(requireParentFragment().getClass().getSimpleName(), Bundle.EMPTY);
-            }
-
-            viewModel.getHorários().put(bundle.getString("id"), map);
-            horário.setValue(list);
-
-            if (getChildFragmentManager().getFragments().size() == 0 || !TextUtils.equals("ScheduleListFragment", getChildFragmentManager().getFragments().get(getChildFragmentManager().getFragments().size() - 1).getClass().getSimpleName())) {
-                getChildFragmentManager().beginTransaction().replace(R.id.layoutFragment, new ScheduleListFragment()).commit();
-            }
+            scheduleAdapter.submitList(hs);
 
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+        for (int i = 0 ; i < linearLayoutManager.getChildCount() ; i++) {
+            ((CompoundButton) linearLayoutManager.getChildAt(i)).setChecked(false);
+        }
+
+        compoundButton.setChecked(b);
+
+        if (b) {
+            bundle.putInt("selectedDay", scheduleAdapter.getCurrentList().get(linearLayoutManager.getPosition(compoundButton)).getDia());
+        } else {
+            bundle.remove("selectedDay");
+        }
+
+        linearLayoutManager.scrollToPosition(linearLayoutManager.getPosition(compoundButton));
+
+        Map<String, Object> map = viewModel.getHorários().get(bundle.getString("id")).get(String.valueOf(bundle.getInt("selectedDay")));
+
+        if (b) {
+            try {
+                binding.barra.setSubtitle("Aberto das ".concat(String.valueOf(map.get("horaAbertura")).replace(".", ":").concat(" até ").concat(String.valueOf(map.get("horaEncerramento")).replace(".", ":"))));
+            } catch (Exception e) {
+                binding.barra.setSubtitle("Encerrado");
+            }
+        } else {
+            binding.barra.setSubtitle("Selecione um dia da semana");
+        }
+    }
+
+    @Override
+    public boolean onLongClick(View view) {
+        if (disposable != null) {
+            disposable.dispose();
+        }
+
+        disposable = viewModel.getService().getBarbeariaService().removerHorario(bundle.getString("id"), scheduleAdapter.getCurrentList().get(linearLayoutManager.getPosition(view)).getDia()).doOnEvent((aBoolean, throwable) -> Toast.makeText(requireContext(), aBoolean ? "" : null, Toast.LENGTH_LONG).show()).subscribe();
+
+        return true;
     }
 }

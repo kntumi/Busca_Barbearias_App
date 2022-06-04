@@ -155,25 +155,7 @@ public class InsertScheduleFragment extends BottomSheetDialogFragment implements
                 if (viewModel.getHorários().get(id).containsKey(String.valueOf(dia))) {
                     String horaAbertura = "", horaEncerramento = "";
 
-                    for (Map.Entry<String, Double> entry : viewModel.getHorários().get(id).get(String.valueOf(dia)).entrySet()) {
-                        String s = String.valueOf(entry.getValue());
 
-                        if (s.length() - s.indexOf(".") == 2) {
-                            switch (entry.getKey()) {
-                                case "horaAbertura": horaAbertura = s.concat("0");
-                                    break;
-                                case "horaEncerramento": horaEncerramento = s.concat("0");
-                                    break;
-                            }
-                        } else {
-                            switch (entry.getKey()) {
-                                case "horaAbertura": horaAbertura = s;
-                                    break;
-                                case "horaEncerramento": horaEncerramento = s;
-                                    break;
-                            }
-                        }
-                    }
 
                     horario.put("horaAbertura", Double.parseDouble(horaAbertura));
                     horario.put("horaEncerramento", Double.parseDouble(horaEncerramento));
@@ -236,12 +218,10 @@ public class InsertScheduleFragment extends BottomSheetDialogFragment implements
             String diaSemana = String.valueOf(obterDiaSemanaNaString());
 
             if (viewModel.getHorários().get(id).containsKey(diaSemana)) {
-               Map<String, Double> horarioDiaSemana = viewModel.getHorários().get(id).get(diaSemana);
+
                List<Float> floats = new ArrayList<>();
 
-               for (String key : horarioDiaSemana.keySet()) {
-                   floats.add(Float.parseFloat(String.valueOf(horarioDiaSemana.get(key))));
-               }
+
 
                String horaAbertura = "", horaEncerramento = "";
 

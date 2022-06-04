@@ -19,7 +19,6 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.gson.Gson;
 
-import java.util.List;
 import java.util.Map;
 
 import javax.inject.Inject;
@@ -96,6 +95,11 @@ public class Service {
                 }
 
                 @Override
+                public Maybe<Boolean> removerContacto(String id, String nrContacto) {
+                    return Barbearia.removerContacto(id, nrContacto, firestore);
+                }
+
+                @Override
                 public Maybe<Map<String, Map<String, Object>>> obterTiposServiços(String id, String idServiço) {
                     return Barbearia.obterTiposServiços(id, idServiço, firestore);
                 }
@@ -111,12 +115,12 @@ public class Service {
                 }
 
                 @Override
-                public Maybe<List<Map<String, Object>>> obterContactos(String id) {
-                    return Barbearia.obterContactos(id, getRequestFactory(), getGson());
+                public Maybe<Map<String, Map<String, Object>>> obterContactos(String id) {
+                    return Barbearia.obterContactos(id, firestore);
                 }
 
                 @Override
-                public Maybe<Map<String, Map<String, Double>>> obterHorário(String id) {
+                public Maybe<Map<String, Map<String, Object>>> obterHorário(String id) {
                     return Barbearia.obterHorário(id, firestore);
                 }
 

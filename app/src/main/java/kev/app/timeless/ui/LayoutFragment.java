@@ -15,13 +15,15 @@ import androidx.fragment.app.FragmentResultListener;
 
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 
+import java.util.Objects;
+
 import kev.app.timeless.R;
 import kev.app.timeless.databinding.LayoutFragmentBinding;
 import kev.app.timeless.util.FragmentUtil;
 
 public class LayoutFragment extends BottomSheetDialogFragment {
     private LayoutFragmentBinding binding;
-    private FragmentResultListener childResultListener, parentResultListener;
+    private FragmentResultListener parentResultListener;
     private Bundle bundle;
     private FragmentManager.FragmentLifecycleCallbacks fragmentLifecycleCallbacks;
 
@@ -35,12 +37,11 @@ public class LayoutFragment extends BottomSheetDialogFragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         parentResultListener = this::observarParent;
-        childResultListener = this::observarChild;
         fragmentLifecycleCallbacks = new FragmentManager.FragmentLifecycleCallbacks() {
             @Override
             public void onFragmentResumed(@NonNull FragmentManager fm, @NonNull Fragment f) {
                 super.onFragmentResumed(fm, f);
-                getChildFragmentManager().setFragmentResult(f.getClass().getSimpleName(), new Bundle(bundle));
+                getChildFragmentManager().setFragmentResult(f.getClass().getSimpleName(), new Bundle(bundle.containsKey(f.getClass().getSimpleName()) ? bundle.getBundle(f.getClass().getSimpleName()) : bundle));
             }
         };
     }
@@ -49,7 +50,6 @@ public class LayoutFragment extends BottomSheetDialogFragment {
     public void onResume() {
         super.onResume();
         requireParentFragment().getChildFragmentManager().setFragmentResultListener(getClass().getSimpleName(), this, parentResultListener);
-        getChildFragmentManager().setFragmentResultListener(getClass().getSimpleName(), this, childResultListener);
         getChildFragmentManager().registerFragmentLifecycleCallbacks(fragmentLifecycleCallbacks, false);
     }
 
@@ -57,14 +57,12 @@ public class LayoutFragment extends BottomSheetDialogFragment {
     public void onPause() {
         super.onPause();
         requireParentFragment().getChildFragmentManager().clearFragmentResultListener(getClass().getSimpleName());
-        getChildFragmentManager().clearFragmentResultListener(getClass().getSimpleName());
         getChildFragmentManager().unregisterFragmentLifecycleCallbacks(fragmentLifecycleCallbacks);
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        childResultListener = null;
         parentResultListener = null;
         bundle = null;
         fragmentLifecycleCallbacks = null;
@@ -93,118 +91,50 @@ public class LayoutFragment extends BottomSheetDialogFragment {
         }
 
         if (result.containsKey("fragmentToLoad")) {
-            FragmentUtil.observarFragment(result.getString("fragmentToLoad"), getChildFragmentManager(), binding.layoutPrincipal.getId());
-            return;
-        }
+            if (!bundle.containsKey(result.getString("fragmentToLoad"))) {
+                Bundle b = new Bundle();
 
-        if (getChildFragmentManager().getFragments().size() == 0) {
-            getChildFragmentManager()
-                    .beginTransaction()
-                    .replace(binding.layoutPrincipal.getId(), TextUtils.equals(requireParentFragment().getClass().getSimpleName(), "MineEstablishmentFragment") ? new MyServicesFragment() : new ServicesFragment())
-                    .commit();
-        }
-    }
+                for (String key : result.keySet()) {
+                    if (TextUtils.equals(key, "fragmentToLoad")) {
+                        continue;
+                    }
 
-    private void observarChild(String requestKey, Bundle result) {
-        if (result.containsKey("idTipoServiço")) {
-            if (TextUtils.isEmpty(result.getString("idTipoServiço"))) {
-                for (Fragment f : getChildFragmentManager().getFragments()) {
-                    if (f.isResumed()) {
-                        if (TextUtils.equals(f.getClass().getSimpleName(), TextUtils.equals(requireParentFragment().getClass().getSimpleName(), "MineEstablishmentFragment") ? "MySubServiceFragment" : "SubServiceFragment")) {
-                            getChildFragmentManager().beginTransaction().remove(f).commit();
+                    switch (key) {
+                        case "selectedTypeService":
+                        case "id":
+                        case "selectedService":
+                            b.putString(key, result.getString(key));
                             break;
-                        }
                     }
                 }
 
-                return;
-            }
+                if (!b.containsKey("id")) {
+                    b.putString("id", bundle.getString("id"));
+                }
 
-            for (Fragment f : getChildFragmentManager().getFragments()) {
-                if (f.isResumed()) {
-                    if (TextUtils.equals(f.getClass().getSimpleName(), TextUtils.equals(requireParentFragment().getClass().getSimpleName(), "MineEstablishmentFragment") ? "MySubServiceFragment" : "SubServiceFragment")) {
-                        return;
-                    }
+                bundle.putBundle(result.getString("fragmentToLoad"), b);
+
+            } else {
+                switch (Objects.requireNonNull(result.getString("fragmentToLoad"))) {
+                    case "ServicesFragment":
+                    case "TypeServicesFragment":
+                                                 for (String key : result.keySet()) {
+                                                    if (TextUtils.equals(key, "fragmentToLoad")) {
+                                                        continue;
+                                                    }
+
+                                                    switch (key) {
+                                                        case "id":
+                                                        case "selectedService":
+                                                            bundle.getBundle(result.getString("fragmentToLoad")).putString(key, result.getString(key));
+                                                            break;
+                                                    }
+                                                 }
+                        break;
                 }
             }
 
-            bundle.putString("idTipoServiço", result.getString("idTipoServiço"));
-
-            getChildFragmentManager()
-                    .beginTransaction()
-                    .replace(binding.layoutPrincipal.getId(), TextUtils.equals(requireParentFragment().getClass().getSimpleName(), "MineEstablishmentFragment") ? new MySubServiceFragment() : new SubServiceFragment())
-                    .commit();
-
-            return;
-        }
-
-        if (result.containsKey("idServiço")) {
-            if (TextUtils.isEmpty(result.getString("idServiço"))) {
-                for (Fragment f : getChildFragmentManager().getFragments()) {
-                    if (f.isResumed()) {
-                        if (TextUtils.equals(f.getClass().getSimpleName(), TextUtils.equals(requireParentFragment().getClass().getSimpleName(), "MineEstablishmentFragment") ? "MyTypeServicesFragment" : "TypeServicesFragment")) {
-                            getChildFragmentManager().beginTransaction().remove(f).commit();
-                            break;
-                        }
-                    }
-                }
-
-                return;
-            }
-
-            for (Fragment f : getChildFragmentManager().getFragments()) {
-                if (f.isResumed()) {
-                    if (TextUtils.equals(f.getClass().getSimpleName(), TextUtils.equals(requireParentFragment().getClass().getSimpleName(), "MineEstablishmentFragment") ? "MyTypeServicesFragment" : "TypeServicesFragment")) {
-                        return;
-                    }
-                }
-            }
-
-            bundle.putString("idServiço", result.getString("idServiço"));
-
-            getChildFragmentManager()
-                    .beginTransaction()
-                    .replace(binding.layoutPrincipal.getId(), TextUtils.equals(requireParentFragment().getClass().getSimpleName(), "MineEstablishmentFragment") ? new MyTypeServicesFragment() : new TypeServicesFragment())
-                    .commit();
-
-            return;
-        }
-
-        Fragment parent = null;
-
-        for (Fragment currentFragment : getChildFragmentManager().getFragments()) {
-            if (currentFragment.isResumed()) {
-                parent = currentFragment;
-                break;
-            }
-        }
-
-        if (parent == null) {
-            return;
-        }
-
-        if (!bundle.containsKey(parent.getClass().getSimpleName())) {
-            bundle.putBundle(parent.getClass().getSimpleName(), new Bundle());
-        }
-
-        for (Fragment child : parent.getChildFragmentManager().getFragments()) {
-            if (child.isResumed()) {
-                if (!bundle.getBundle(parent.getClass().getSimpleName()).containsKey(child.getClass().getSimpleName())) {
-                    bundle.getBundle(parent.getClass().getSimpleName()).putBundle(child.getClass().getSimpleName(), new Bundle());
-                }
-
-                if (result.containsKey("position")) {
-                    bundle.getBundle(parent.getClass().getSimpleName()).getBundle(child.getClass().getSimpleName()).putInt("position", result.getInt("position"));
-                } else {
-                    if (bundle.getBundle(parent.getClass().getSimpleName()).getBundle(child.getClass().getSimpleName()).containsKey("position")) {
-                        bundle.getBundle(parent.getClass().getSimpleName()).getBundle(child.getClass().getSimpleName()).remove("position");
-                    }
-                }
-
-                parent.getChildFragmentManager().setFragmentResult(child.getClass().getSimpleName(), bundle);
-
-                break;
-            }
+            getChildFragmentManager().beginTransaction().replace(binding.layoutPrincipal.getId(), FragmentUtil.obterFragment(Objects.requireNonNull(result.getString("fragmentToLoad")))).commit();
         }
     }
 }

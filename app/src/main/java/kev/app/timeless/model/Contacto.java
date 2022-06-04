@@ -1,38 +1,38 @@
 package kev.app.timeless.model;
 
 public class Contacto {
-    private Integer nrTelefone;
-    private Integer posicao;
+    private int nrTelefone;
+    private boolean contactoPrincipal;
 
     public Contacto() {
     }
 
-    public Contacto(Integer nrTelefone, Integer posicao) {
+    public Contacto(int nrTelefone, boolean contactoPrincipal) {
         this.nrTelefone = nrTelefone;
-        this.posicao = posicao;
+        this.contactoPrincipal = contactoPrincipal;
     }
 
-    public Integer getNrTelefone() {
+    public int getNrTelefone() {
         return nrTelefone;
     }
 
-    public void setNrTelefone(Integer nrTelefone) {
+    public void setNrTelefone(int nrTelefone) {
         this.nrTelefone = nrTelefone;
     }
 
-    public Integer getPosicao() {
-        return posicao;
+    public boolean isContactoPrincipal() {
+        return contactoPrincipal;
     }
 
-    public void setPosicao(Integer posicao) {
-        this.posicao = posicao;
+    public void setContactoPrincipal(boolean contactoPrincipal) {
+        this.contactoPrincipal = contactoPrincipal;
     }
 
     @Override
     public String toString() {
         return "Contacto{" +
                 "nrTelefone=" + nrTelefone +
-                ", posicao=" + posicao +
+                ", contactoPrincipal=" + contactoPrincipal +
                 '}';
     }
 }

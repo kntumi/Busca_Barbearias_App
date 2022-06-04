@@ -2,13 +2,10 @@ package kev.app.timeless.viewmodel;
 
 import android.location.Location;
 
-import androidx.databinding.ObservableArrayMap;
-import androidx.databinding.ObservableMap;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import javax.inject.Inject;
@@ -16,12 +13,8 @@ import javax.inject.Inject;
 import kev.app.timeless.api.Service;
 
 public class MapViewModel extends ViewModel {
-    private ObservableMap<String, Map<String, Object>> estabelecimentos;
-    private ObservableMap<String, Map<String, Map<String, Double>>> horários;
-    private ObservableMap<String, Map<String, Map<String, Object>>> serviços;
-    private ObservableMap<String, Map<String, Map<String, Object>>> tiposServiços;
-    private ObservableMap<String, Map<String, Map<String, Object>>> subServiços;
-    private Map<String, List<Map<String, Object>>> contactos;
+    private Map<String, Map<String, Object>> estabelecimentos;
+    private Map<String, Map<String, Map<String, Object>>> horarios, servicos, tiposServicos, subServicos, contactos;
     private MutableLiveData<Location> location;
     private Service service;
 
@@ -31,47 +24,47 @@ public class MapViewModel extends ViewModel {
         this.service = service;
     }
 
-    public ObservableMap<String, Map<String, Object>> getEstabelecimentos() {
+    public Map<String, Map<String, Object>> getEstabelecimentos() {
         if (estabelecimentos == null) {
-            estabelecimentos = new ObservableArrayMap<>();
+            estabelecimentos = new HashMap<>();
         }
 
         return estabelecimentos;
     }
 
-    public ObservableMap<String, Map<String, Map<String, Object>>> getServiços() {
-        if (serviços == null) {
-            serviços = new ObservableArrayMap<>();
+    public Map<String, Map<String, Map<String, Object>>> getServiços() {
+        if (servicos == null) {
+            servicos = new HashMap<>();
         }
 
-        return serviços;
+        return servicos;
     }
 
-    public ObservableMap<String, Map<String, Map<String, Double>>> getHorários() {
-        if (horários == null) {
-            horários = new ObservableArrayMap<>();
+    public Map<String, Map<String, Map<String, Object>>> getHorários() {
+        if (horarios == null) {
+            horarios = new HashMap<>();
         }
 
-        return horários;
+        return horarios;
     }
 
-    public ObservableMap<String, Map<String, Map<String, Object>>> getTiposServiços() {
-        if (tiposServiços == null) {
-            tiposServiços = new ObservableArrayMap<>();
+    public Map<String, Map<String, Map<String, Object>>> getTiposServiços() {
+        if (tiposServicos == null) {
+            tiposServicos = new HashMap<>();
         }
 
-        return tiposServiços;
+        return tiposServicos;
     }
 
-    public ObservableMap<String, Map<String, Map<String, Object>>> getSubServiços() {
-        if (subServiços == null) {
-            subServiços = new ObservableArrayMap<>();
+    public Map<String, Map<String, Map<String, Object>>> getSubServiços() {
+        if (subServicos == null) {
+            subServicos = new HashMap<>();
         }
 
-        return subServiços;
+        return subServicos;
     }
 
-    public Map<String, List<Map<String, Object>>> getContactos() {
+    public Map<String, Map<String, Map<String, Object>>> getContactos() {
         if (contactos == null) {
             contactos = new HashMap<>();
         }
@@ -94,12 +87,12 @@ public class MapViewModel extends ViewModel {
     @Override
     protected void onCleared() {
         super.onCleared();
-        tiposServiços = null;
-        subServiços = null;
+        tiposServicos = null;
+        subServicos = null;
         contactos = null;
-        serviços = null;
+        servicos = null;
         service = null;
-        horários = null;
+        horarios = null;
         location = null;
         estabelecimentos = null;
     }
