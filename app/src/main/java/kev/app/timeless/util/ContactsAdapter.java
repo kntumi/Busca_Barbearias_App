@@ -14,11 +14,11 @@ import kev.app.timeless.R;
 import kev.app.timeless.model.Contacto;
 
 public class ContactsAdapter extends ListAdapter<Contacto, ContactsAdapter.ViewHolder> {
-    private View.OnLongClickListener onLongClickListener;
+    private View.OnClickListener onClickListener;
 
-    public ContactsAdapter(@NonNull DiffUtil.ItemCallback<Contacto> diffCallback, View.OnLongClickListener onLongClickListener) {
+    public ContactsAdapter(@NonNull DiffUtil.ItemCallback<Contacto> diffCallback, View.OnClickListener onClickListener) {
         super(diffCallback);
-        this.onLongClickListener = onLongClickListener;
+        this.onClickListener = onClickListener;
     }
 
     @NonNull
@@ -41,25 +41,23 @@ public class ContactsAdapter extends ListAdapter<Contacto, ContactsAdapter.ViewH
     @Override
     public void onViewAttachedToWindow(@NonNull ViewHolder holder) {
         super.onViewAttachedToWindow(holder);
-        holder.contacto.setOnLongClickListener(onLongClickListener);
+        holder.copy.setOnClickListener(onClickListener);
     }
 
     @Override
     public void onViewDetachedFromWindow(@NonNull ViewHolder holder) {
         super.onViewDetachedFromWindow(holder);
-        holder.contacto.setOnLongClickListener(null);
+        holder.copy.setOnClickListener(null);
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
         protected TextView contacto;
+        protected View copy;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
-            contacto = itemView.findViewById(R.id.contacto);
-        }
-
-        public String getNrTelefone () {
-            return (String) contacto.getText();
+            contacto = itemView.findViewById(R.id.txtContacto);
+            copy = itemView.findViewById(R.id.copy);
         }
     }
 }

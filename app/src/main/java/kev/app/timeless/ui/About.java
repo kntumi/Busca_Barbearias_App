@@ -46,7 +46,7 @@ public class About extends DaggerFragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         binding = DataBindingUtil.inflate(inflater, R.layout.about, container, false);
-        return binding.layoutPrincipal;
+        return binding.about;
     }
 
     @Override
@@ -61,7 +61,6 @@ public class About extends DaggerFragment {
     public void onResume() {
         super.onResume();
         requireParentFragment().getChildFragmentManager().setFragmentResultListener(getClass().getSimpleName(), this, fragmentResultListener);
-        binding.edit.setOnClickListener(onClickListener);
         binding.txtContacto.setOnClickListener(onClickListener);
         binding.txtHorario.setOnClickListener(onClickListener);
         binding.txtLoc.setOnClickListener(onClickListener);
@@ -72,14 +71,6 @@ public class About extends DaggerFragment {
     public void onPause() {
         super.onPause();
         requireParentFragment().getChildFragmentManager().clearFragmentResultListener(getClass().getSimpleName());
-
-        for (int i = 0 ; i < binding.layoutPrincipal.getChildCount() ; i++) {
-            View v = binding.layoutPrincipal.getChildAt(i);
-
-            if (v.hasOnClickListeners()) {
-                v.setOnClickListener(null);
-            }
-        }
 
         if (listenerRegistrations != null) {
             for (ListenerRegistration listenerRegistration : listenerRegistrations) {
@@ -93,7 +84,6 @@ public class About extends DaggerFragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        binding.layoutPrincipal.removeAllViews();
         onClickListener = null;
         viewModel = null;
         fragmentResultListener = null;

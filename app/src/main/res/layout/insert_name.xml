@@ -19,7 +19,7 @@
             app:layout_constraintTop_toTopOf="parent"
             app:navigationIcon="@drawable/voltar_icn"
             app:menu="@menu/inserir"
-            app:title="Editar Nome"
+            app:title="Editar nome"
             app:titleTextAppearance="@style/textAppearanceBarra" />
 
         <com.google.android.material.textfield.TextInputLayout

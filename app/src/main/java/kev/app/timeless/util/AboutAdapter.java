@@ -18,12 +18,10 @@ import kev.app.timeless.R;
 public class AboutAdapter extends ListAdapter<State, AboutAdapter.AboutViewHolder> {
     private View.OnClickListener onClickListener;
     private ConstraintLayout layout;
-    private Info info;
 
-    public AboutAdapter(@NonNull DiffUtil.ItemCallback<State> diffCallback, View.OnClickListener onClickListener, Info info) {
+    public AboutAdapter(@NonNull DiffUtil.ItemCallback<State> diffCallback, View.OnClickListener onClickListener) {
         super(diffCallback);
         this.onClickListener = onClickListener;
-        this.info = info;
     }
 
     @NonNull
@@ -37,8 +35,6 @@ public class AboutAdapter extends ListAdapter<State, AboutAdapter.AboutViewHolde
             case 2: viewHolder = new AboutAdapter.AboutViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.loading, parent, false));
                 break;
             case 3: viewHolder = new AboutAdapter.AboutViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.text, parent, false));
-                break;
-            case 4: viewHolder = new AboutAdapter.AboutViewHolder(LayoutInflater.from(parent.getContext()).inflate(info.isUserLoggedIn() ? R.layout.about : R.layout.not_about, parent, false));
                 break;
         }
 

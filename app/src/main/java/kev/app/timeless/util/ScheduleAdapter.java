@@ -3,14 +3,13 @@ package kev.app.timeless.util;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.CompoundButton;
+import android.widget.ImageView;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
-
-import com.google.android.material.chip.Chip;
 
 import java.util.Calendar;
 
@@ -18,11 +17,11 @@ import kev.app.timeless.R;
 import kev.app.timeless.model.Horário;
 
 public class ScheduleAdapter extends ListAdapter<Horário, ScheduleAdapter.ScheduleViewHolder> {
-    private CompoundButton.OnCheckedChangeListener onCheckedChangeListener;
+    private View.OnClickListener onClickListener;
 
-    public ScheduleAdapter(@NonNull DiffUtil.ItemCallback<Horário> diffCallback, CompoundButton.OnCheckedChangeListener onCheckedChangeListener) {
+    public ScheduleAdapter(@NonNull DiffUtil.ItemCallback<Horário> diffCallback, View.OnClickListener onClickListener) {
         super(diffCallback);
-        this.onCheckedChangeListener = onCheckedChangeListener;
+        this.onClickListener = onClickListener;
     }
 
     @NonNull
@@ -33,53 +32,67 @@ public class ScheduleAdapter extends ListAdapter<Horário, ScheduleAdapter.Sched
 
     @Override
     public void onBindViewHolder(@NonNull ScheduleViewHolder holder, int positionViewHolder) {
-        holder.atualizarViews(holder.itemView.findViewById(R.id.txt), getItem(positionViewHolder));
+        Horário horário = getItem(positionViewHolder);
+
+        if (horário == null) {
+            return;
+        }
+
+        holder.txtDiaSemana.setText(holder.getDiaSemana(horário));
+
+        String horaAbertura = String.valueOf(horário.getHoraAbertura()), horaEncerramento = String.valueOf(horário.getHoraEncerramento());
+
+        horaAbertura = horaAbertura.length() - horaAbertura.indexOf(".") == 2 ? horaAbertura.concat("0") : horaAbertura;
+        horaEncerramento = horaEncerramento.length() - horaEncerramento.indexOf(".") == 2 ? horaEncerramento.concat("0") : horaEncerramento;
+
+        holder.txtHorario.setText(horaAbertura.replace(".", ":").concat(" - ").concat(horaEncerramento.replace(".", ":")));
     }
 
     @Override
     public void onViewAttachedToWindow(@NonNull ScheduleViewHolder holder) {
         super.onViewAttachedToWindow(holder);
-        holder.chip.setOnCheckedChangeListener(onCheckedChangeListener);
+        holder.btnShow.setOnClickListener(onClickListener);
     }
 
     @Override
     public void onViewDetachedFromWindow(@NonNull ScheduleViewHolder holder) {
         super.onViewDetachedFromWindow(holder);
-        holder.chip.setOnCheckedChangeListener(null);
+        holder.btnShow.setOnClickListener(null);
     }
 
     public static class ScheduleViewHolder extends RecyclerView.ViewHolder {
-        private Chip chip;
+        private TextView txtDiaSemana, txtHorario;
+        private ImageView btnShow;
 
         public ScheduleViewHolder(@NonNull View itemView) {
             super(itemView);
-            this.chip =  itemView.findViewById(R.id.txt);
+            this.txtDiaSemana =  itemView.findViewById(R.id.txtDiaSemana);
+            this.txtHorario = itemView.findViewById(R.id.txtHorario);
+            this.btnShow = itemView.findViewById(R.id.btnShow);
         }
 
-        public void atualizarViews(Chip txtDiaSemana, Horário horário) {
+        public String getDiaSemana (Horário horário) {
+            String diaSemana;
+
             switch (horário.getDia()) {
-                case Calendar.SUNDAY:
-                    txtDiaSemana.setText("Domingo");
+                case Calendar.SUNDAY: diaSemana = "Domingo";
                     break;
-                case Calendar.MONDAY:
-                    txtDiaSemana.setText("Segunda-feira");
+                case Calendar.MONDAY: diaSemana = "Segunda-feira";
                     break;
-                case Calendar.TUESDAY:
-                    txtDiaSemana.setText("Terça-feira");
+                case Calendar.TUESDAY: diaSemana = "Terça-Feira";
                     break;
-                case Calendar.WEDNESDAY:
-                    txtDiaSemana.setText("Quarta-feira");
+                case Calendar.WEDNESDAY: diaSemana = "Quarta-Feira";
                     break;
-                case Calendar.THURSDAY:
-                    txtDiaSemana.setText("Quinta-feira");
+                case Calendar.THURSDAY: diaSemana = "Quinta-Feira";
                     break;
-                case Calendar.FRIDAY:
-                    txtDiaSemana.setText("Sexta-feira");
+                case Calendar.FRIDAY: diaSemana = "Sexta-Feira";
                     break;
-                case Calendar.SATURDAY:
-                    txtDiaSemana.setText("Sábado");
+                case Calendar.SATURDAY: diaSemana = "Sábado";
                     break;
+                default: diaSemana = "";
             }
+
+            return diaSemana;
         }
     }
 }

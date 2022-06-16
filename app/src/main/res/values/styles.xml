@@ -40,7 +40,6 @@
     <style name="textAppearanceBarra" parent="TextAppearance.AppCompat.Title">
         <item name="android:textSize">16sp</item>
         <item name="android:letterSpacing">0</item>
-        <item name="android:fontFamily">sans-serif-medium</item>
     </style>
 
     <style name="AppTheme.NoActionBar">
@@ -69,8 +68,7 @@
         <item name="android:background">@android:color/transparent</item>
     </style>
 
-    <style name="textAppearanceSchedule" parent="TextAppearance.AppCompat.Medium">
-        <item name="android:fontFamily">sans-serif-medium</item>
+    <style name="textAppearanceSchedule" parent="TextAppearance.AppCompat.Body1">
         <item name="android:textSize">14sp</item>
     </style>
 

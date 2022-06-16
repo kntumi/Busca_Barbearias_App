@@ -84,8 +84,6 @@ public class SubServiceFragment extends DaggerFragment implements View.OnClickLi
                 return false;
             }
         }, this);
-        binding.recyclerView.setLayoutManager(linearLayoutManager);
-        binding.recyclerView.setAdapter(subServiceAdapter);
     }
 
     @Override
@@ -119,8 +117,6 @@ public class SubServiceFragment extends DaggerFragment implements View.OnClickLi
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        binding.recyclerView.setAdapter(null);
-        binding.recyclerView.setLayoutManager(null);
         bundle = null;
         observer = null;
         linearLayoutManager = null;
@@ -273,16 +269,6 @@ public class SubServiceFragment extends DaggerFragment implements View.OnClickLi
             });
         }
 
-        if (itemTouchHelper != null) {
-            itemTouchHelper.attachToRecyclerView(binding.recyclerView);
-        }
-
-        if (binding.recyclerView.getAdapter() == subServiceListAdapter) {
-            return;
-        }
-
-        binding.recyclerView.setAdapter(subServiceListAdapter);
-
         ArrayList<SubServiço> subServicos = new ArrayList<>();
 
         for (Map.Entry<String, Map<String, Object>> entry: viewModel.getSubServiços().get(bundle.getString("selectedTypeService")).entrySet()) {
@@ -314,10 +300,6 @@ public class SubServiceFragment extends DaggerFragment implements View.OnClickLi
                     viewModel.getSubServiços().get(bundle.getString("selectedTypeService")).clear();
                 }
 
-                if (binding.recyclerView.getAdapter() != subServiceAdapter) {
-                    binding.recyclerView.setAdapter(subServiceAdapter);
-                }
-
                 subServiceAdapter.submitList(Collections.singletonList(State.Empty));
 
                 return;
@@ -341,10 +323,6 @@ public class SubServiceFragment extends DaggerFragment implements View.OnClickLi
 
             for (Map.Entry<String, Map<String, Object>> entry: map.entrySet()) {
                 subServicos.add(new SubServiço(String.valueOf(entry.getValue().get("nome")), Double.parseDouble(String.valueOf(entry.getValue().get("preco"))), entry.getKey()));
-            }
-
-            if (binding.recyclerView.getAdapter() != subServiceListAdapter) {
-                binding.recyclerView.setAdapter(subServiceListAdapter);
             }
 
             subServiceListAdapter.submitList(subServicos);

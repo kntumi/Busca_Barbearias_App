@@ -1,20 +1,26 @@
 package kev.app.timeless.ui;
 
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.widget.AppCompatTextView;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.FragmentResultListener;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.button.MaterialButton;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestoreException;
@@ -22,7 +28,6 @@ import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,7 +41,6 @@ import kev.app.timeless.databinding.LayoutDefaultBinding;
 import kev.app.timeless.di.viewModelFactory.ViewModelProvidersFactory;
 import kev.app.timeless.model.Serviço;
 import kev.app.timeless.model.User;
-import kev.app.timeless.util.ServiceAdapter;
 import kev.app.timeless.util.ServicesAdapter;
 import kev.app.timeless.util.State;
 import kev.app.timeless.viewmodel.MapViewModel;
@@ -49,7 +53,9 @@ public class ServicesFragment extends DaggerFragment implements View.OnClickList
     private Disposable disposable;
     private Observer<List<User>> observer;
     private FragmentResultListener parentResultListener;
-    private ServiceAdapter serviceAdapter;
+    private String loggedInUserId;
+    private Map<State, View> map;
+    private ViewTreeObserver.OnGlobalLayoutListener onGlobalLayoutListener;
     private LinearLayoutManager linearLayoutManager;
     private ServicesAdapter servicesAdapter;
 
@@ -68,20 +74,9 @@ public class ServicesFragment extends DaggerFragment implements View.OnClickList
         viewModel = new ViewModelProvider(requireActivity(), providerFactory).get(MapViewModel.class);
         parentResultListener = this::observarParent;
         observer = this::observarUser;
+        onGlobalLayoutListener = this::observarLayout;
+        map = new HashMap<>();
         linearLayoutManager = new LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false);
-        serviceAdapter = new ServiceAdapter(new DiffUtil.ItemCallback<State>() {
-            @Override
-            public boolean areItemsTheSame(@NonNull State oldItem, @NonNull State newItem) {
-                return false;
-            }
-
-            @Override
-            public boolean areContentsTheSame(@NonNull State oldItem, @NonNull State newItem) {
-                return false;
-            }
-        }, this);
-        binding.recyclerView.setLayoutManager(linearLayoutManager);
-        binding.recyclerView.setAdapter(serviceAdapter);
         binding.barra.setTitle("Serviços");
     }
 
@@ -90,6 +85,7 @@ public class ServicesFragment extends DaggerFragment implements View.OnClickList
         super.onResume();
         requireParentFragment().getChildFragmentManager().setFragmentResultListener(getClass().getSimpleName(), this, parentResultListener);
         binding.barra.setNavigationOnClickListener(this);
+        binding.layoutPrincipal.getViewTreeObserver().addOnGlobalLayoutListener(onGlobalLayoutListener);
     }
 
     @Override
@@ -97,6 +93,7 @@ public class ServicesFragment extends DaggerFragment implements View.OnClickList
         super.onPause();
         requireParentFragment().getChildFragmentManager().clearFragmentResultListener(getClass().getSimpleName());
         binding.barra.setNavigationOnClickListener(null);
+        binding.layoutPrincipal.getViewTreeObserver().removeOnGlobalLayoutListener(onGlobalLayoutListener);
 
         if (listenerRegistration != null) {
             listenerRegistration.remove();
@@ -105,17 +102,15 @@ public class ServicesFragment extends DaggerFragment implements View.OnClickList
 
         if (disposable != null) {
             disposable.dispose();
-            disposable = null;
         }
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        binding.recyclerView.setAdapter(null);
-        binding.recyclerView.setLayoutManager(null);
         observer = null;
-        serviceAdapter = null;
+        onGlobalLayoutListener = null;
+        map = null;
         servicesAdapter = null;
         parentResultListener = null;
         linearLayoutManager = null;
@@ -140,18 +135,8 @@ public class ServicesFragment extends DaggerFragment implements View.OnClickList
     public void onEvent(@Nullable QuerySnapshot value, @Nullable FirebaseFirestoreException error) {
         try {
             if (value.isEmpty()) {
-                if (binding.recyclerView.getAdapter() != serviceAdapter) {
-                    binding.recyclerView.setAdapter(serviceAdapter);
-                }
-
                 if (viewModel.getServiços().containsKey(bundle.getString("id"))) {
                     viewModel.getServiços().get(bundle.getString("id")).clear();
-                }
-
-                State currentState = serviceAdapter.getCurrentList().get(0);
-
-                if (currentState != State.Empty) {
-                    serviceAdapter.submitList(Collections.singletonList(State.Empty));
                 }
 
                 return;
@@ -175,10 +160,6 @@ public class ServicesFragment extends DaggerFragment implements View.OnClickList
 
             for (Map.Entry<String, Map<String, Object>> entry: map.entrySet()) {
                 servicos.add(new Serviço(entry.getKey(), String.valueOf(entry.getValue().get("nome"))));
-            }
-
-            if (binding.recyclerView.getAdapter() != servicesAdapter) {
-                binding.recyclerView.setAdapter(servicesAdapter);
             }
 
             servicesAdapter.submitList(servicos);
@@ -232,7 +213,98 @@ public class ServicesFragment extends DaggerFragment implements View.OnClickList
         return observer;
     }
 
+    private void observarLayout() {
+        for (int i = 0 ; i < binding.layoutPrincipal.getChildCount(); i++) {
+            View v = binding.layoutPrincipal.getChildAt(i);
+
+            if (v.getId() == binding.barra.getId()) {
+                continue;
+            }
+
+            switch (v.getId()) {
+                case R.id.layoutBarraProgresso: obterServicos(bundle);
+                    break;
+                case R.id.layoutText: inicializarText(v);
+                    break;
+                case R.id.recyclerView: inicializarRecyclerView(v);
+                    break;
+                case R.id.layoutError: inicializarRetryBtn(v);
+                    break;
+            }
+        }
+    }
+
+    private void inicializarRetryBtn(View v) {
+        MaterialButton btn = v.findViewById(R.id.retryBtn);
+
+        if (btn.hasOnClickListeners()) {
+            return;
+        }
+
+        btn.setOnClickListener(this);
+    }
+
+    private void inicializarRecyclerView(View v) {
+        RecyclerView recyclerView = (RecyclerView) v;
+
+        if (listenerRegistration != null) {
+            listenerRegistration.remove();
+        }
+
+        if (servicesAdapter == null) {
+            servicesAdapter = new ServicesAdapter(new DiffUtil.ItemCallback<Serviço>() {
+                @Override
+                public boolean areItemsTheSame(@NonNull Serviço oldItem, @NonNull Serviço newItem) {
+                    return false;
+                }
+
+                @Override
+                public boolean areContentsTheSame(@NonNull Serviço oldItem, @NonNull Serviço newItem) {
+                    return false;
+                }
+            },this, this);
+        }
+
+        adicionarListener();
+
+        if (servicesAdapter.equals(recyclerView.getAdapter())) {
+            return;
+        }
+
+        if (linearLayoutManager == null) {
+            linearLayoutManager = new LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false);
+        }
+
+        if (!linearLayoutManager.equals(recyclerView.getLayoutManager())) {
+            recyclerView.setLayoutManager(linearLayoutManager);
+        }
+
+        recyclerView.setAdapter(servicesAdapter);
+
+        ArrayList<Serviço> servicos = new ArrayList<>();
+
+        for (Map.Entry<String, Map<String, Object>> entry: viewModel.getServiços().get(bundle.getString("id")).entrySet()) {
+            servicos.add(new Serviço(entry.getKey(), String.valueOf(entry.getValue().get("nome"))));
+        }
+
+        servicesAdapter.submitList(servicos);
+    }
+
+    private void inicializarText(View v) {
+        AppCompatTextView appCompatTextView = v.findViewById(R.id.txt);
+
+        String txtAMostrar = TextUtils.equals(bundle.getString("id"), loggedInUserId) ? "Adicione um serviço para os outros usuarios o verem " : "Sem serviços disponiveis";
+
+        if (TextUtils.equals(appCompatTextView.getText(), txtAMostrar)) {
+            return;
+        }
+
+        appCompatTextView.setText(txtAMostrar);
+    }
+
     private void observarUser(List<User> users) {
+        loggedInUserId = users.size() != 0 ? users.get(users.size() - 1).getId() : null;
+
         binding.barra.setOnMenuItemClickListener(null);
 
         if (users.size() != 0) {
@@ -241,12 +313,7 @@ public class ServicesFragment extends DaggerFragment implements View.OnClickList
             }
 
             binding.barra.setOnMenuItemClickListener(item -> {
-                if (b == null) {
-                    b = new Bundle();
-                }
-
-                b.putString("fragmentToLoad", "InsertServiceFragment");
-                requireParentFragment().requireParentFragment().getChildFragmentManager().setFragmentResult(requireParentFragment().getClass().getSimpleName(), b);
+                requireParentFragment().getChildFragmentManager().beginTransaction().replace(R.id.layoutPrincipal, new InsertServiceFragment()).commit();
                 return true;
             });
 
@@ -269,57 +336,70 @@ public class ServicesFragment extends DaggerFragment implements View.OnClickList
             state = State.Loading;
         }
 
-        if (state != State.Loaded) {
-            serviceAdapter.submitList(Collections.singletonList(state), () -> {
-                List<State> states = serviceAdapter.getCurrentList();
-
-                for (int  i = 0 ; i < states.size(); i++) {
-                    if (states.get(i) == State.Loading) {
-                        obterServicos(result);
-                    }
-                }
-            });
-
-            return;
+        switch (state) {
+            case Empty: onEmpty();
+                break;
+            case Loaded: onLoaded();
+                break;
+            case Loading: onLoading();
+                break;
         }
-
-        onLoad();
     }
 
-    private void onLoad() {
-        if (listenerRegistration != null) {
-            listenerRegistration.remove();
+    private void removerViews () {
+        for (int i = 0 ; i < binding.layoutPrincipal.getChildCount() ; i++) {
+            View v = binding.layoutPrincipal.getChildAt(i);
+
+            if (v.getId() == binding.barra.getId()) {
+                continue;
+            }
+
+            binding.layoutPrincipal.removeView(v);
+        }
+    }
+
+    private void onLoaded() {
+        if (!map.containsKey(State.Loaded)) {
+            map.put(State.Loaded, View.inflate(requireContext(), R.layout.list, null));
         }
 
-        if (servicesAdapter == null) {
-            servicesAdapter = new ServicesAdapter(new DiffUtil.ItemCallback<Serviço>() {
-                @Override
-                public boolean areItemsTheSame(@NonNull Serviço oldItem, @NonNull Serviço newItem) {
-                    return false;
-                }
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        layoutParams.topMargin = 24;
+        layoutParams.bottomMargin = 18;
 
-                @Override
-                public boolean areContentsTheSame(@NonNull Serviço oldItem, @NonNull Serviço newItem) {
-                    return false;
-                }
-            },this, this);
+        removerViews();
+
+        binding.layoutPrincipal.addView(map.get(State.Loaded), layoutParams);
+    }
+
+    private void onEmpty() {
+        if (!map.containsKey(State.Empty)) {
+            map.put(State.Empty, View.inflate(requireContext(), R.layout.text, null));
         }
 
-        adicionarListener();
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        layoutParams.topMargin = 24;
+        layoutParams.rightMargin = 24;
+        layoutParams.leftMargin = 24;
 
-        if (binding.recyclerView.getAdapter() == servicesAdapter) {
-            return;
+        removerViews();
+
+        binding.layoutPrincipal.addView(map.get(State.Empty), layoutParams);
+    }
+
+    private void onLoading() {
+        if (!map.containsKey(State.Loading)) {
+            map.put(State.Loading, View.inflate(requireContext(), R.layout.loading, null));
         }
 
-        binding.recyclerView.setAdapter(servicesAdapter);
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        layoutParams.topMargin = 24;
+        layoutParams.rightMargin = 24;
+        layoutParams.leftMargin = 24;
 
-        ArrayList<Serviço> servicos = new ArrayList<>();
+        removerViews();
 
-        for (Map.Entry<String, Map<String, Object>> entry: viewModel.getServiços().get(bundle.getString("id")).entrySet()) {
-            servicos.add(new Serviço(entry.getKey(), String.valueOf(entry.getValue().get("nome"))));
-        }
-
-        servicesAdapter.submitList(servicos);
+        binding.layoutPrincipal.addView(map.get(State.Loading), layoutParams);
     }
 
     private void adicionarListener () {
@@ -335,11 +415,25 @@ public class ServicesFragment extends DaggerFragment implements View.OnClickList
             viewModel.getServiços().put(bundle.getString("id"), stringMapMap);
 
             if (stringMapMap.size() != 0) {
-                onLoad();
-                return;
+                onLoaded();
+            } else {
+                onEmpty();
             }
+        }, throwable -> onError());
+    }
 
-            serviceAdapter.submitList(Collections.singletonList(State.Empty), this::adicionarListener);
-        }, throwable -> serviceAdapter.submitList(Collections.singletonList(State.Error)));
+    private void onError() {
+        if (!map.containsKey(State.Error)) {
+            map.put(State.Error, View.inflate(requireContext(), R.layout.error, null));
+        }
+
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        layoutParams.topMargin = 24;
+        layoutParams.rightMargin = 24;
+        layoutParams.leftMargin = 24;
+
+        removerViews();
+
+        binding.layoutPrincipal.addView(map.get(State.Error), layoutParams);
     }
 }

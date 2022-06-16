@@ -41,7 +41,11 @@ public class LayoutFragment extends BottomSheetDialogFragment {
             @Override
             public void onFragmentResumed(@NonNull FragmentManager fm, @NonNull Fragment f) {
                 super.onFragmentResumed(fm, f);
-                getChildFragmentManager().setFragmentResult(f.getClass().getSimpleName(), new Bundle(bundle.containsKey(f.getClass().getSimpleName()) ? bundle.getBundle(f.getClass().getSimpleName()) : bundle));
+                if (!f.isStateSaved()) {
+                    getChildFragmentManager().setFragmentResult(f.getClass().getSimpleName(), new Bundle(bundle.containsKey(f.getClass().getSimpleName()) ? bundle.getBundle(f.getClass().getSimpleName()) : bundle));
+                }
+
+                System.out.println("isStateSaved: "+f.isStateSaved());
             }
         };
     }
@@ -102,8 +106,7 @@ public class LayoutFragment extends BottomSheetDialogFragment {
                     switch (key) {
                         case "selectedTypeService":
                         case "id":
-                        case "selectedService":
-                            b.putString(key, result.getString(key));
+                        case "selectedService": b.putString(key, result.getString(key));
                             break;
                     }
                 }
@@ -125,8 +128,7 @@ public class LayoutFragment extends BottomSheetDialogFragment {
 
                                                     switch (key) {
                                                         case "id":
-                                                        case "selectedService":
-                                                            bundle.getBundle(result.getString("fragmentToLoad")).putString(key, result.getString(key));
+                                                        case "selectedService": bundle.getBundle(result.getString("fragmentToLoad")).putString(key, result.getString(key));
                                                             break;
                                                     }
                                                  }

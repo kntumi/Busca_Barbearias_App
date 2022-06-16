@@ -1,27 +1,33 @@
 package kev.app.timeless.ui;
 
+import android.animation.LayoutTransition;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
-import android.widget.CompoundButton;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.widget.AppCompatTextView;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.FragmentResultListener;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.DiffUtil;
-import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.transition.AutoTransition;
+import androidx.transition.Transition;
+import androidx.transition.TransitionManager;
+import androidx.transition.TransitionValues;
 
+import com.google.android.material.button.MaterialButton;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestoreException;
@@ -46,7 +52,7 @@ import kev.app.timeless.util.ScheduleAdapter;
 import kev.app.timeless.util.State;
 import kev.app.timeless.viewmodel.MapViewModel;
 
-public class ScheduleFragment extends DaggerFragment implements View.OnClickListener, View.OnLongClickListener, CompoundButton.OnCheckedChangeListener, EventListener<QuerySnapshot> {
+public class ScheduleFragment extends DaggerFragment implements View.OnClickListener, View.OnLongClickListener, EventListener<QuerySnapshot> {
     private FragmentScheduleBinding binding;
     private ListenerRegistration listenerRegistration;
     private Bundle bundle;
@@ -59,7 +65,6 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
     private ScheduleAdapter scheduleAdapter;
     private MapViewModel viewModel;
     private ViewTreeObserver.OnGlobalLayoutListener onGlobalLayoutListener;
-    private ItemTouchHelper itemTouchHelper;
 
     @Inject
     ViewModelProvidersFactory providerFactory;
@@ -121,10 +126,6 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
                 v.setOnClickListener(null);
             }
         }
-
-        if (itemTouchHelper != null) {
-            itemTouchHelper.attachToRecyclerView(null);
-        }
     }
 
     @Override
@@ -133,7 +134,6 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
         map.clear();
         bundle.clear();
         linearLayoutManager = null;
-        itemTouchHelper = null;
         loggedInUserId = null;
         disposable = null;
         onGlobalLayoutListener = null;
@@ -193,18 +193,38 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
             }
 
             switch (v.getId()) {
-                case R.id.layoutBarraProgresso:
-                    obterHorario(bundle);
+                case R.id.layoutBarraProgresso: obterHorario(bundle);
                     break;
-                case R.id.recyclerView:
-                    inicializarRecyclerView(v);
+                case R.id.recyclerView: inicializarRecyclerView(v);
                     break;
-                case R.id.layoutText:
+                case R.id.layoutText: inicializarText(v);
                     break;
-                case R.id.layoutError:
+                case R.id.layoutError: inicializarRetryBtn(v);
                     break;
             }
         }
+    }
+
+    private void inicializarRetryBtn(View v) {
+        MaterialButton btn = v.findViewById(R.id.retryBtn);
+
+        if (btn.hasOnClickListeners()) {
+            return;
+        }
+
+        btn.setOnClickListener(this);
+    }
+
+    private void inicializarText(View v) {
+        AppCompatTextView appCompatTextView = v.findViewById(R.id.txt);
+
+        String txtAMostrar = TextUtils.equals(bundle.getString("id"), loggedInUserId) ? "Adicione um tipo de serviço para os outros usuarios o verem " : "Sem tipo de disponiveis";
+
+        if (TextUtils.equals(appCompatTextView.getText(), txtAMostrar)) {
+            return;
+        }
+
+        appCompatTextView.setText(txtAMostrar);
     }
 
     private void inicializarRecyclerView(View v) {
@@ -236,45 +256,6 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
             linearLayoutManager = new LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false);
         } else {
             recyclerView.setLayoutManager(null);
-        }
-
-        if (!TextUtils.isEmpty(loggedInUserId)) {
-            if (itemTouchHelper == null) {
-                itemTouchHelper = new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
-                    @Override
-                    public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
-                        return false;
-                    }
-
-                    @Override
-                    public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
-                        if (direction == ItemTouchHelper.LEFT) {
-                            int adapterPosition = linearLayoutManager.getPosition(viewHolder.itemView);
-                            int diaARemover = scheduleAdapter.getCurrentList().get(adapterPosition).getDia();
-
-                            if (disposable != null) {
-                                disposable.dispose();
-                            }
-
-                            disposable = viewModel.getService().getBarbeariaService().removerHorario(bundle.getString("id"), diaARemover).subscribe(aBoolean -> {
-                                if (!aBoolean) {
-                                    Toast.makeText(requireContext(), "", Toast.LENGTH_LONG).show();
-                                }
-                            }, throwable -> Toast.makeText(requireContext(), "", Toast.LENGTH_LONG).show());
-
-                            return;
-                        }
-
-                        requireParentFragment().getChildFragmentManager().beginTransaction().replace(R.id.layoutPrincipal, new AboutFragment()).commit();
-                    }
-                });
-            } else {
-                itemTouchHelper.attachToRecyclerView(null);
-            }
-        }
-
-        if (itemTouchHelper != null) {
-            itemTouchHelper.attachToRecyclerView(recyclerView);
         }
 
         recyclerView.setLayoutManager(linearLayoutManager);
@@ -379,10 +360,7 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
         }
 
         LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        layoutParams.leftMargin = 24;
-        layoutParams.rightMargin = 24;
         layoutParams.topMargin = 24;
-        layoutParams.bottomMargin = 36;
 
         removerViewsDoLayout();
 
@@ -396,13 +374,41 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
     @Override
     public void onClick(View view) {
         switch (view.getId()) {
-            case R.id.retryBtn:
-                obterHorario(bundle);
+            case R.id.retryBtn: obterHorario(bundle);
                 break;
-            case View.NO_ID:
-                requireParentFragment().getChildFragmentManager().beginTransaction().replace(R.id.layoutPrincipal, new AboutFragment()).commit();
+            case View.NO_ID: requireParentFragment().getChildFragmentManager().beginTransaction().replace(R.id.layoutPrincipal, new AboutFragment()).commit();
                 break;
+            case R.id.btnShow: observarBtnShow(view);
         }
+    }
+
+    private void observarBtnShow(View view) {
+        try {
+            for (int i = 0 ; i < linearLayoutManager.getChildCount() ; i++) {
+                ConstraintLayout v = (ConstraintLayout) linearLayoutManager.getChildAt(i);
+
+                TextView textView = v.findViewById(R.id.txtHorario);
+
+                if (v.findViewById(R.id.btnShow) != view) {
+                    if (textView.getVisibility() == View.VISIBLE) {
+                        textView.setVisibility(View.GONE);
+                    }
+
+                    if (v.findViewById(R.id.btnShow).getRotation() != 0) {
+                        v.findViewById(R.id.btnShow).setRotation(0);
+                    }
+
+                    continue;
+                }
+
+                TransitionManager.beginDelayedTransition(v, new AutoTransition());
+                textView.setVisibility(textView.getVisibility() == View.GONE ? View.VISIBLE : View.GONE);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        view.setRotation(view.getRotation() == 180 ? 0 : 180);
     }
 
     @Override
@@ -440,6 +446,10 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
 
             viewModel.getHorários().put(bundle.getString("id"), map);
 
+            if (bundle.containsKey("selectedDay")) {
+                bundle.remove("selectedDay");
+            }
+
             ArrayList<Horário> hs = new ArrayList<>();
 
             for (Map.Entry<String, Map<String, Object>> entry : viewModel.getHorários().get(bundle.getString("id")).entrySet()) {
@@ -462,23 +472,6 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    @Override
-    public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-        for (int i = 0 ; i < linearLayoutManager.getChildCount() ; i++) {
-            ((CompoundButton) linearLayoutManager.getChildAt(i)).setChecked(false);
-        }
-
-        compoundButton.setChecked(b);
-
-        if (b) {
-            bundle.putInt("selectedDay", scheduleAdapter.getCurrentList().get(linearLayoutManager.getPosition(compoundButton)).getDia());
-        } else {
-            bundle.remove("selectedDay");
-        }
-
-        linearLayoutManager.scrollToPosition(linearLayoutManager.getPosition(compoundButton));
     }
 
     @Override

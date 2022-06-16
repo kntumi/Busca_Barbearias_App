@@ -14,6 +14,8 @@ import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.FragmentResultListener;
 import androidx.lifecycle.ViewModelProvider;
 
+import java.util.Map;
+
 import javax.inject.Inject;
 
 import dagger.android.support.DaggerFragment;
@@ -95,12 +97,17 @@ public class InsertNameFragment extends DaggerFragment {
 
         binding.barra.setOnMenuItemClickListener(null);
 
-        if (TextUtils.isEmpty(bundle.getString("id"))) {
-            requireParentFragment().getChildFragmentManager().beginTransaction().remove(this).commit();
-            return;
+        String nome = "";
+
+        if (viewModel.getEstabelecimentos().containsKey(bundle.getString("id"))) {
+            Map<String, Object> map = viewModel.getEstabelecimentos().get(bundle.getString("id"));
+
+            if (map.containsKey("nome")) {
+                nome = String.valueOf(map.get("nome"));
+            }
         }
 
-        binding.nome.setHint(viewModel.getEstabelecimentos().containsKey(bundle.getString("id")) ? viewModel.getEstabelecimentos().get(bundle.getString("id")).containsKey("nome") ? TextUtils.isEmpty(String.valueOf(viewModel.getEstabelecimentos().get(bundle.getString("id")).get("nome"))) ? "Desconhecido" : String.valueOf(viewModel.getEstabelecimentos().get(bundle.getString("id")).get("nome")) : "Desconhecido" : "Desconhecido");
+        binding.nome.setHelperText(TextUtils.isEmpty(nome) ? "Insira o novo nome para ele aparecerá aqui" : "O nome actual é ".concat(nome));
         binding.barra.setOnMenuItemClickListener(this::observarMenuItemClick);
     }
 
