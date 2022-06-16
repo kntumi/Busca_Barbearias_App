@@ -18,10 +18,10 @@ import androidx.fragment.app.FragmentResultListener;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.DiffUtil;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.android.material.slider.RangeSlider;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestoreException;
@@ -59,7 +59,7 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
     private ScheduleAdapter scheduleAdapter;
     private MapViewModel viewModel;
     private ViewTreeObserver.OnGlobalLayoutListener onGlobalLayoutListener;
-    private List<Float> values;
+    private ItemTouchHelper itemTouchHelper;
 
     @Inject
     ViewModelProvidersFactory providerFactory;
@@ -111,7 +111,7 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
         if (map.containsKey(State.Error)) {
             ConstraintLayout layout = (ConstraintLayout) map.get(State.Error);
 
-            for (int i = 0 ; i < layout.getChildCount() ; i++) {
+            for (int i = 0; i < layout.getChildCount(); i++) {
                 View v = layout.getChildAt(i);
 
                 if (!v.hasOnClickListeners()) {
@@ -121,6 +121,10 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
                 v.setOnClickListener(null);
             }
         }
+
+        if (itemTouchHelper != null) {
+            itemTouchHelper.attachToRecyclerView(null);
+        }
     }
 
     @Override
@@ -129,6 +133,7 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
         map.clear();
         bundle.clear();
         linearLayoutManager = null;
+        itemTouchHelper = null;
         loggedInUserId = null;
         disposable = null;
         onGlobalLayoutListener = null;
@@ -137,7 +142,6 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
         scheduleAdapter = null;
         parentResultListener = null;
         bundle = null;
-        values = null;
         listenerRegistration = null;
         viewModel = null;
         binding = null;
@@ -181,7 +185,7 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
     }
 
     private void observarLayout() {
-        for (int i = 0 ; i < binding.layoutPrincipal.getChildCount() ; i++) {
+        for (int i = 0; i < binding.layoutPrincipal.getChildCount(); i++) {
             View v = binding.layoutPrincipal.getChildAt(i);
 
             if (v == binding.barra) {
@@ -199,111 +203,8 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
                     break;
                 case R.id.layoutError:
                     break;
-                case R.id.slider:
-                    inicializarSlider(v);
-                    break;
             }
         }
-    }
-
-    private void inicializarSlider(View v) {
-        RangeSlider slider = (RangeSlider) v;
-
-        if (values == null) {
-            values = new ArrayList<>();
-
-            for (int i = 7; i < 22; i++) {
-                for (int j = 0; j <= 55; j++) {
-                    if (j % 5 == 0) {
-                        if (String.valueOf(j).length() == 2) {
-                            values.add(Float.valueOf(i + "." + j));
-                        } else {
-                            values.add(Float.valueOf(i + ".0" + j));
-                        }
-                    }
-                }
-            }
-        }
-
-        slider.clearOnChangeListeners();
-
-        if (slider.getValues().isEmpty() || slider.getValues().size() == 1) {
-            slider.setValues(7f, 21.55f);
-        }
-
-        slider.addOnChangeListener(this::observarSlider);
-    }
-
-    private void observarSlider(RangeSlider slider, float v, boolean b) {
-        if (slider.getValues().get(0) >= 7) {
-            if (!values.contains(slider.getValues().get(0))) {
-                Float valor = null;
-                for (Float aFloat : values) {
-                    if (valor != null) {
-                        if (slider.getValues().get(0) >= aFloat) {
-                            valor = aFloat;
-                        }
-                    } else {
-                        valor = aFloat;
-                    }
-                }
-
-                slider.setValues(valor, slider.getValues().get(1));
-                return;
-            }
-        } else {
-            slider.setValues(7f, slider.getValues().get(1));
-            return;
-        }
-
-        if (slider.getValues().get(1) > 21.55f) {
-            slider.setValues(slider.getValues().get(0), 21.55f);
-            return;
-        } else {
-            if (!values.contains(slider.getValues().get(1))) {
-                Float valor = null;
-                for (Float aFloat : values) {
-                    if (valor != null) {
-                        if (slider.getValues().get(1) >= aFloat) {
-                            valor = aFloat;
-                        }
-                    } else {
-                        valor = aFloat;
-                    }
-                }
-
-                slider.setValues(slider.getValues().get(0), valor);
-                return;
-            }
-        }
-
-        String horaAbertura = "", horaEncerramento = "";
-
-        for (Float hora : slider.getValues()) {
-            String s = String.valueOf(hora);
-
-            if (s.length() - s.indexOf(".") == 2) {
-                switch (slider.getValues().indexOf(hora)) {
-                    case 0:
-                        horaAbertura = s.concat("0");
-                        break;
-                    case 1:
-                        horaEncerramento = s.concat("0");
-                        break;
-                }
-            } else {
-                switch (slider.getValues().indexOf(hora)) {
-                    case 0:
-                        horaAbertura = s;
-                        break;
-                    case 1:
-                        horaEncerramento = s;
-                        break;
-                }
-            }
-        }
-
-        binding.barra.setSubtitle("Aberto das ".concat(horaAbertura.replace(".", ":").concat(" até ").concat(horaEncerramento.replace(".", ":"))));
     }
 
     private void inicializarRecyclerView(View v) {
@@ -323,47 +224,57 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
             }, this);
         }
 
-        try {
-            Map<String, Object> map = viewModel.getHorários().get(bundle.getString("id")).get(String.valueOf(bundle.getInt("selectedDay")));
-
-            if (map == null) {
-                throw new NullPointerException();
-            }
-
-        } catch (Exception e) {
-            binding.barra.setSubtitle("Selecione um dia da semana");
-
-            for (int i = 0; i < binding.barra.getMenu().size(); i++) {
-                binding.barra.getMenu().removeItem(i);
-            }
-        }
-
-        for (int j = 0; j < binding.layoutPrincipal.getChildCount(); j++) {
-            View view = binding.layoutPrincipal.getChildAt(j);
-
-            if (view.getId() != R.id.slider) {
-                continue;
-            }
-
-            view.setEnabled(!TextUtils.equals(binding.barra.getSubtitle(), "Selecione um dia da semana"));
-        }
-
         if (scheduleAdapter.equals(recyclerView.getAdapter())) {
             return;
         }
 
+        if (scheduleAdapter != null) {
+            recyclerView.setAdapter(null);
+        }
+
         if (linearLayoutManager == null) {
-            linearLayoutManager = new LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false);
+            linearLayoutManager = new LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false);
+        } else {
+            recyclerView.setLayoutManager(null);
         }
 
         if (!TextUtils.isEmpty(loggedInUserId)) {
-            LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-            layoutParams.leftMargin = 16;
-            layoutParams.rightMargin = 16;
-            layoutParams.topMargin = 16;
-            layoutParams.bottomMargin = 36;
+            if (itemTouchHelper == null) {
+                itemTouchHelper = new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
+                    @Override
+                    public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
+                        return false;
+                    }
 
-            binding.layoutPrincipal.addView(View.inflate(requireActivity(), R.layout.slider, null), layoutParams);
+                    @Override
+                    public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+                        if (direction == ItemTouchHelper.LEFT) {
+                            int adapterPosition = linearLayoutManager.getPosition(viewHolder.itemView);
+                            int diaARemover = scheduleAdapter.getCurrentList().get(adapterPosition).getDia();
+
+                            if (disposable != null) {
+                                disposable.dispose();
+                            }
+
+                            disposable = viewModel.getService().getBarbeariaService().removerHorario(bundle.getString("id"), diaARemover).subscribe(aBoolean -> {
+                                if (!aBoolean) {
+                                    Toast.makeText(requireContext(), "", Toast.LENGTH_LONG).show();
+                                }
+                            }, throwable -> Toast.makeText(requireContext(), "", Toast.LENGTH_LONG).show());
+
+                            return;
+                        }
+
+                        requireParentFragment().getChildFragmentManager().beginTransaction().replace(R.id.layoutPrincipal, new AboutFragment()).commit();
+                    }
+                });
+            } else {
+                itemTouchHelper.attachToRecyclerView(null);
+            }
+        }
+
+        if (itemTouchHelper != null) {
+            itemTouchHelper.attachToRecyclerView(recyclerView);
         }
 
         recyclerView.setLayoutManager(linearLayoutManager);
@@ -471,7 +382,7 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
         layoutParams.leftMargin = 24;
         layoutParams.rightMargin = 24;
         layoutParams.topMargin = 24;
-        layoutParams.bottomMargin = TextUtils.isEmpty(loggedInUserId) ? 36 : 0;
+        layoutParams.bottomMargin = 36;
 
         removerViewsDoLayout();
 
@@ -485,11 +396,11 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
     @Override
     public void onClick(View view) {
         switch (view.getId()) {
-            case R.id.inserir: new InsertScheduleFragment().show(getChildFragmentManager(), "currentFragment");
-                break;
             case R.id.retryBtn:
+                obterHorario(bundle);
                 break;
-            case View.NO_ID: requireParentFragment().getChildFragmentManager().beginTransaction().replace(R.id.layoutPrincipal, new AboutFragment()).commit();
+            case View.NO_ID:
+                requireParentFragment().getChildFragmentManager().beginTransaction().replace(R.id.layoutPrincipal, new AboutFragment()).commit();
                 break;
         }
     }
@@ -499,7 +410,15 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
         try {
             if (value.isEmpty()) {
                 if (viewModel.getHorários().containsKey(bundle.getString("id"))) {
-                    viewModel.getHorários().get(bundle.getString("id")).clear();
+                    Map<String, Map<String, Object>> map = viewModel.getHorários().get(bundle.getString("id"));
+
+                    if (!map.isEmpty()) {
+                        map.clear();
+                    }
+                }
+
+                if (bundle.containsKey("selectedDay")) {
+                    bundle.remove("selectedDay");
                 }
 
                 onEmpty();
@@ -560,18 +479,6 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
         }
 
         linearLayoutManager.scrollToPosition(linearLayoutManager.getPosition(compoundButton));
-
-        Map<String, Object> map = viewModel.getHorários().get(bundle.getString("id")).get(String.valueOf(bundle.getInt("selectedDay")));
-
-        if (b) {
-            try {
-                binding.barra.setSubtitle("Aberto das ".concat(String.valueOf(map.get("horaAbertura")).replace(".", ":").concat(" até ").concat(String.valueOf(map.get("horaEncerramento")).replace(".", ":"))));
-            } catch (Exception e) {
-                binding.barra.setSubtitle("Encerrado");
-            }
-        } else {
-            binding.barra.setSubtitle("Selecione um dia da semana");
-        }
     }
 
     @Override

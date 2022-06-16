@@ -58,19 +58,26 @@ public class ScheduleAdapter extends ListAdapter<Horário, ScheduleAdapter.Sched
 
         public void atualizarViews(Chip txtDiaSemana, Horário horário) {
             switch (horário.getDia()) {
-                case Calendar.SUNDAY: txtDiaSemana.setText("Dom");
+                case Calendar.SUNDAY:
+                    txtDiaSemana.setText("Domingo");
                     break;
-                case Calendar.MONDAY: txtDiaSemana.setText("Seg");
+                case Calendar.MONDAY:
+                    txtDiaSemana.setText("Segunda-feira");
                     break;
-                case Calendar.TUESDAY: txtDiaSemana.setText("Ter");
+                case Calendar.TUESDAY:
+                    txtDiaSemana.setText("Terça-feira");
                     break;
-                case Calendar.WEDNESDAY: txtDiaSemana.setText("Qua");
+                case Calendar.WEDNESDAY:
+                    txtDiaSemana.setText("Quarta-feira");
                     break;
-                case Calendar.THURSDAY: txtDiaSemana.setText("Qui");
+                case Calendar.THURSDAY:
+                    txtDiaSemana.setText("Quinta-feira");
                     break;
-                case Calendar.FRIDAY: txtDiaSemana.setText("Sex");
+                case Calendar.FRIDAY:
+                    txtDiaSemana.setText("Sexta-feira");
                     break;
-                case Calendar.SATURDAY: txtDiaSemana.setText("Sáb");
+                case Calendar.SATURDAY:
+                    txtDiaSemana.setText("Sábado");
                     break;
             }
         }
