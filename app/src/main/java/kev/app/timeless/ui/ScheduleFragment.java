@@ -29,9 +29,11 @@ import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import javax.inject.Inject;
 
@@ -375,9 +377,55 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
                 break;
             case R.id.show: observarBtnShow(view);
                 break;
-            case R.id.edit: requireParentFragment().getChildFragmentManager().beginTransaction().replace(R.id.layoutPrincipal, new ManageScheduleFragment()).commit();
+            case R.id.edit: abrirManageScheduleFragment(view);
                 break;
         }
+    }
+
+    private void abrirManageScheduleFragment(View view) {
+        Bundle b = new Bundle();
+
+        b.putString("fragmentToLoad", "ManageScheduleFragment");
+
+        for (int i = 0 ; i < linearLayoutManager.getChildCount() ; i ++) {
+            ConstraintLayout layout = (ConstraintLayout) linearLayoutManager.getChildAt(i);
+
+            if (!view.equals(Objects.requireNonNull(layout).findViewById(R.id.edit))) {
+                continue;
+            }
+
+            b.putInt("chosenDay", obterDiaSemana(layout.findViewById(R.id.txtDiaSemana)));
+        }
+
+        if (!b.containsKey("chosenDay")) {
+            return;
+        }
+
+        requireParentFragment().requireParentFragment().getChildFragmentManager().setFragmentResult(requireParentFragment().getClass().getSimpleName(), b);
+    }
+
+    private int obterDiaSemana(TextView txtDiaSemana) {
+        int diaSemana;
+
+        switch (txtDiaSemana.getText().toString()) {
+            case "Domingo": diaSemana = Calendar.SUNDAY;
+                break;
+            case "Segunda-Feira": diaSemana = Calendar.MONDAY;
+                break;
+            case "Terça-Feira": diaSemana = Calendar.TUESDAY;
+                break;
+            case "Quarta-Feira": diaSemana = Calendar.WEDNESDAY;
+                break;
+            case "Quinta-Feira": diaSemana = Calendar.THURSDAY;
+                break;
+            case "Sexta-Feira": diaSemana = Calendar.FRIDAY;
+                break;
+            case "Sábado": diaSemana = Calendar.SATURDAY;
+                break;
+            default: diaSemana = 10;
+        }
+
+        return diaSemana;
     }
 
     private void observarBtnShow(View view) {

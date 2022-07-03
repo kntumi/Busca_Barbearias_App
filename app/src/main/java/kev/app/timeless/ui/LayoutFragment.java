@@ -95,48 +95,17 @@ public class LayoutFragment extends BottomSheetDialogFragment {
         }
 
         if (result.containsKey("fragmentToLoad")) {
-            if (!bundle.containsKey(result.getString("fragmentToLoad"))) {
-                Bundle b = new Bundle();
+            String key = result.getString("fragmentToLoad");
 
-                for (String key : result.keySet()) {
-                    if (TextUtils.equals(key, "fragmentToLoad")) {
-                        continue;
-                    }
-
-                    switch (key) {
-                        case "selectedTypeService":
-                        case "id":
-                        case "selectedService": b.putString(key, result.getString(key));
-                            break;
-                    }
-                }
-
-                if (!b.containsKey("id")) {
-                    b.putString("id", bundle.getString("id"));
-                }
-
-                bundle.putBundle(result.getString("fragmentToLoad"), b);
-
-            } else {
-                switch (Objects.requireNonNull(result.getString("fragmentToLoad"))) {
-                    case "ServicesFragment":
-                    case "TypeServicesFragment":
-                                                 for (String key : result.keySet()) {
-                                                    if (TextUtils.equals(key, "fragmentToLoad")) {
-                                                        continue;
-                                                    }
-
-                                                    switch (key) {
-                                                        case "id":
-                                                        case "selectedService": bundle.getBundle(result.getString("fragmentToLoad")).putString(key, result.getString(key));
-                                                            break;
-                                                    }
-                                                 }
-                        break;
-                }
+            if (!result.containsKey("id")) {
+                result.putString("id", bundle.getString("id"));
             }
 
-            getChildFragmentManager().beginTransaction().replace(binding.layoutPrincipal.getId(), FragmentUtil.obterFragment(Objects.requireNonNull(result.getString("fragmentToLoad")))).commit();
+            result.remove("fragmentToLoad");
+
+            bundle.putBundle(key, result);
+
+            getChildFragmentManager().beginTransaction().replace(binding.layoutPrincipal.getId(), FragmentUtil.obterFragment(Objects.requireNonNull(key))).commit();
         }
     }
 }

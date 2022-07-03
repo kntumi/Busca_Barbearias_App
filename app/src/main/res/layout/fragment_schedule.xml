@@ -16,7 +16,7 @@
             android:layout_marginTop="18dp"
             app:navigationIcon="@drawable/voltar_icn"
             app:title="Horário"
-            app:titleTextAppearance="@style/textAppearanceBarra" />
+            app:titleTextAppearance="?textAppearanceListItem" />
 
     </LinearLayout>
 
