@@ -13,6 +13,7 @@ import kev.app.timeless.ui.InsertNameFragment;
 import kev.app.timeless.ui.LayoutFragment;
 import kev.app.timeless.ui.LoadingFragment;
 import kev.app.timeless.ui.LoginFragment;
+import kev.app.timeless.ui.ManageScheduleFragment;
 import kev.app.timeless.ui.MapsFragment;
 import kev.app.timeless.ui.NewContactFragment;
 import kev.app.timeless.ui.NonUserControlFragment;
@@ -86,6 +87,8 @@ public class FragmentUtil {
             case "SubServiceFragment": fragment = new SubServiceFragment();
                 break;
             case "ServicesFragment": fragment = new ServicesFragment();
+                break;
+            case "ManageScheduleFragment": fragment = new ManageScheduleFragment();
                 break;
         }
 
