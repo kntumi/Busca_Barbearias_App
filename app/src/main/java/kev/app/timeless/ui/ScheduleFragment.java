@@ -1,6 +1,5 @@
 package kev.app.timeless.ui;
 
-import android.animation.LayoutTransition;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
@@ -9,7 +8,6 @@ import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -22,10 +20,6 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import androidx.transition.AutoTransition;
-import androidx.transition.Transition;
-import androidx.transition.TransitionManager;
-import androidx.transition.TransitionValues;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -48,11 +42,12 @@ import kev.app.timeless.databinding.FragmentScheduleBinding;
 import kev.app.timeless.di.viewModelFactory.ViewModelProvidersFactory;
 import kev.app.timeless.model.Horário;
 import kev.app.timeless.model.User;
+import kev.app.timeless.util.LoggedInListener;
 import kev.app.timeless.util.ScheduleAdapter;
 import kev.app.timeless.util.State;
 import kev.app.timeless.viewmodel.MapViewModel;
 
-public class ScheduleFragment extends DaggerFragment implements View.OnClickListener, View.OnLongClickListener, EventListener<QuerySnapshot> {
+public class ScheduleFragment extends DaggerFragment implements View.OnClickListener, LoggedInListener, EventListener<QuerySnapshot> {
     private FragmentScheduleBinding binding;
     private ListenerRegistration listenerRegistration;
     private Bundle bundle;
@@ -241,7 +236,7 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
                 public boolean areContentsTheSame(@NonNull Horário oldItem, @NonNull Horário newItem) {
                     return false;
                 }
-            }, this);
+            }, this, this);
         }
 
         if (scheduleAdapter.equals(recyclerView.getAdapter())) {
@@ -378,7 +373,10 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
                 break;
             case View.NO_ID: requireParentFragment().getChildFragmentManager().beginTransaction().replace(R.id.layoutPrincipal, new AboutFragment()).commit();
                 break;
-            case R.id.btnShow: observarBtnShow(view);
+            case R.id.show: observarBtnShow(view);
+                break;
+            case R.id.edit: requireParentFragment().getChildFragmentManager().beginTransaction().replace(R.id.layoutPrincipal, new ManageScheduleFragment()).commit();
+                break;
         }
     }
 
@@ -389,20 +387,20 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
 
                 TextView textView = v.findViewById(R.id.txtHorario);
 
-                if (v.findViewById(R.id.btnShow) != view) {
+                if (v.findViewById(R.id.show) != view) {
                     if (textView.getVisibility() == View.VISIBLE) {
                         textView.setVisibility(View.GONE);
                     }
 
-                    if (v.findViewById(R.id.btnShow).getRotation() != 0) {
-                        v.findViewById(R.id.btnShow).setRotation(0);
+                    if (v.findViewById(R.id.show).getRotation() != 0) {
+                        v.findViewById(R.id.show).setRotation(0);
                     }
 
                     continue;
                 }
 
-                TransitionManager.beginDelayedTransition(v, new AutoTransition());
                 textView.setVisibility(textView.getVisibility() == View.GONE ? View.VISIBLE : View.GONE);
+
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -475,13 +473,7 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
     }
 
     @Override
-    public boolean onLongClick(View view) {
-        if (disposable != null) {
-            disposable.dispose();
-        }
-
-        disposable = viewModel.getService().getBarbeariaService().removerHorario(bundle.getString("id"), scheduleAdapter.getCurrentList().get(linearLayoutManager.getPosition(view)).getDia()).doOnEvent((aBoolean, throwable) -> Toast.makeText(requireContext(), aBoolean ? "" : null, Toast.LENGTH_LONG).show()).subscribe();
-
-        return true;
+    public String loggedInUserId() {
+        return loggedInUserId;
     }
 }

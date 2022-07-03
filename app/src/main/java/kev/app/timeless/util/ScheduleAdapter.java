@@ -1,5 +1,6 @@
 package kev.app.timeless.util;
 
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,10 +19,12 @@ import kev.app.timeless.model.Horário;
 
 public class ScheduleAdapter extends ListAdapter<Horário, ScheduleAdapter.ScheduleViewHolder> {
     private View.OnClickListener onClickListener;
+    private LoggedInListener loggedInListener;
 
-    public ScheduleAdapter(@NonNull DiffUtil.ItemCallback<Horário> diffCallback, View.OnClickListener onClickListener) {
+    public ScheduleAdapter(@NonNull DiffUtil.ItemCallback<Horário> diffCallback, View.OnClickListener onClickListener, LoggedInListener loggedInListener) {
         super(diffCallback);
         this.onClickListener = onClickListener;
+        this.loggedInListener = loggedInListener;
     }
 
     @NonNull
@@ -39,6 +42,7 @@ public class ScheduleAdapter extends ListAdapter<Horário, ScheduleAdapter.Sched
         }
 
         holder.txtDiaSemana.setText(holder.getDiaSemana(horário));
+        holder.edit.setVisibility(TextUtils.isEmpty(loggedInListener.loggedInUserId()) ? View.GONE : View.VISIBLE);
 
         String horaAbertura = String.valueOf(horário.getHoraAbertura()), horaEncerramento = String.valueOf(horário.getHoraEncerramento());
 
@@ -51,24 +55,27 @@ public class ScheduleAdapter extends ListAdapter<Horário, ScheduleAdapter.Sched
     @Override
     public void onViewAttachedToWindow(@NonNull ScheduleViewHolder holder) {
         super.onViewAttachedToWindow(holder);
-        holder.btnShow.setOnClickListener(onClickListener);
+        holder.show.setOnClickListener(onClickListener);
+        holder.edit.setOnClickListener(onClickListener);
     }
 
     @Override
     public void onViewDetachedFromWindow(@NonNull ScheduleViewHolder holder) {
         super.onViewDetachedFromWindow(holder);
-        holder.btnShow.setOnClickListener(null);
+        holder.show.setOnClickListener(null);
+        holder.edit.setOnClickListener(null);
     }
 
     public static class ScheduleViewHolder extends RecyclerView.ViewHolder {
         private TextView txtDiaSemana, txtHorario;
-        private ImageView btnShow;
+        private ImageView show, edit;
 
         public ScheduleViewHolder(@NonNull View itemView) {
             super(itemView);
             this.txtDiaSemana =  itemView.findViewById(R.id.txtDiaSemana);
             this.txtHorario = itemView.findViewById(R.id.txtHorario);
-            this.btnShow = itemView.findViewById(R.id.btnShow);
+            this.show = itemView.findViewById(R.id.show);
+            this.edit = itemView.findViewById(R.id.edit);
         }
 
         public String getDiaSemana (Horário horário) {
@@ -77,7 +84,7 @@ public class ScheduleAdapter extends ListAdapter<Horário, ScheduleAdapter.Sched
             switch (horário.getDia()) {
                 case Calendar.SUNDAY: diaSemana = "Domingo";
                     break;
-                case Calendar.MONDAY: diaSemana = "Segunda-feira";
+                case Calendar.MONDAY: diaSemana = "Segunda-Feira";
                     break;
                 case Calendar.TUESDAY: diaSemana = "Terça-Feira";
                     break;

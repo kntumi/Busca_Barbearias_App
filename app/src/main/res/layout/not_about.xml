@@ -5,7 +5,7 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:id="@+id/layoutPrincipal">
+        android:id="@+id/not_about">
 
         <View
             android:id="@+id/info"
@@ -13,51 +13,50 @@
             android:layout_height="24dp"
             android:layout_marginStart="24dp"
             android:background="@drawable/info"
-            app:layout_constraintBottom_toBottomOf="@+id/nome"
+            app:layout_constraintBottom_toBottomOf="@+id/txtNome"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="@+id/nome" />
 
-        <com.google.android.material.textfield.TextInputLayout
+        <TextView
             android:id="@+id/nome"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="24dp"
-            android:layout_marginTop="24dp"
             android:layout_marginStart="12dp"
-            android:textColorHint="@color/colorPrimary"
-            app:boxBackgroundColor="?android:textColorPrimaryInverse"
-            app:boxBackgroundMode="none"
+            android:layout_marginTop="24dp"
             android:hint="Nome"
-            app:layout_constraintEnd_toEndOf="parent"
+            android:paddingHorizontal="4dp"
+            android:textColorHint="@color/colorPrimary"
+            android:textSize="12sp"
             app:layout_constraintStart_toEndOf="@+id/info"
-           app:layout_constraintTop_toTopOf="parent">
+            app:layout_constraintTop_toTopOf="parent" />
 
-            <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                android:id="@+id/txtNome"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:padding="4dp" />
-
-        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/txtNome"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="?android:textColorPrimary"
+            android:paddingHorizontal="4dp"
+            app:layout_constraintStart_toStartOf="@id/nome"
+            app:layout_constraintTop_toBottomOf="@+id/nome" />
 
         <TextView
             android:id="@+id/txtContacto"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="?android:selectableItemBackground"
-            android:drawableStart="@drawable/call"
-            android:layout_marginTop="24dp"
+            android:textColor="?android:textColorPrimary"
             android:drawablePadding="16dp"
-            android:text="Contactos"
+            android:drawableStart="@drawable/call"
             android:drawableEnd="@drawable/go"
             android:paddingStart="24dp"
+            android:text="Contactos"
             android:paddingTop="16dp"
+            android:layout_marginTop="24dp"
             android:paddingEnd="24dp"
             android:paddingBottom="16dp"
-            android:textColor="?android:textColorPrimary"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/nome" />
+            app:layout_constraintTop_toBottomOf="@+id/txtNome" />
 
         <TextView
             android:id="@+id/txtServicos"
@@ -65,9 +64,9 @@
             android:layout_height="wrap_content"
             android:background="?android:selectableItemBackground"
             android:drawableStart="@drawable/miscellaneous_services"
+            android:drawableEnd="@drawable/go"
             android:drawablePadding="16dp"
             android:paddingStart="24dp"
-            android:drawableEnd="@drawable/go"
             android:paddingTop="16dp"
             android:paddingEnd="24dp"
             android:paddingBottom="16dp"
@@ -91,11 +90,9 @@
             android:paddingBottom="16dp"
             android:text="Horário"
             android:textColor="?android:textColorPrimary"
-            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/txtServicos" />
-
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>

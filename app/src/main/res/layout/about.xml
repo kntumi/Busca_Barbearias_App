@@ -13,7 +13,7 @@
             android:layout_height="24dp"
             android:layout_marginStart="24dp"
             android:background="@drawable/info"
-            app:layout_constraintBottom_toBottomOf="@+id/nome"
+            app:layout_constraintBottom_toBottomOf="@+id/txtNome"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="@+id/nome" />
 
@@ -23,31 +23,32 @@
             android:layout_height="24dp"
             android:layout_marginEnd="24dp"
             android:background="@drawable/edit"
-            app:layout_constraintBottom_toBottomOf="@+id/nome"
+            app:layout_constraintBottom_toBottomOf="@+id/txtNome"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="@+id/nome" />
 
-        <com.google.android.material.textfield.TextInputLayout
+        <TextView
             android:id="@+id/nome"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
             android:layout_marginStart="12dp"
-            android:textColorHint="@color/colorPrimary"
-            app:boxBackgroundColor="?android:textColorPrimaryInverse"
+            android:layout_marginTop="24dp"
             android:hint="Nome"
-            app:boxBackgroundMode="none"
-            app:layout_constraintEnd_toStartOf="@+id/edit"
+            android:paddingHorizontal="4dp"
+            android:textColorHint="@color/colorPrimary"
+            android:textSize="12sp"
             app:layout_constraintStart_toEndOf="@+id/info"
-            app:layout_constraintTop_toTopOf="parent">
+            app:layout_constraintTop_toTopOf="parent" />
 
-            <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                android:id="@+id/txtNome"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:padding="4dp"/>
-
-        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/txtNome"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:textColor="?android:textColorPrimary"
+            android:paddingHorizontal="4dp"
+            app:layout_constraintStart_toStartOf="@id/nome"
+            app:layout_constraintTop_toBottomOf="@+id/nome" />
 
         <TextView
             android:id="@+id/txtContacto"
@@ -66,7 +67,7 @@
             android:paddingBottom="16dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/nome" />
+            app:layout_constraintTop_toBottomOf="@+id/txtNome" />
 
         <TextView
             android:id="@+id/txtLoc"

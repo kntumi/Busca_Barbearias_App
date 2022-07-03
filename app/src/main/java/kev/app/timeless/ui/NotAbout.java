@@ -46,7 +46,7 @@ public class NotAbout extends DaggerFragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         binding = DataBindingUtil.inflate(inflater, R.layout.not_about, container, false);
-        return binding.layoutPrincipal;
+        return binding.notAbout;
     }
 
     @Override
@@ -71,14 +71,6 @@ public class NotAbout extends DaggerFragment {
         super.onPause();
         requireParentFragment().getChildFragmentManager().clearFragmentResultListener(getClass().getSimpleName());
 
-        for (int i = 0 ; i < binding.layoutPrincipal.getChildCount() ; i++) {
-            View v = binding.layoutPrincipal.getChildAt(i);
-
-            if (v.hasOnClickListeners()) {
-                v.setOnClickListener(null);
-            }
-        }
-
         if (listenerRegistrations != null) {
             for (ListenerRegistration listenerRegistration : listenerRegistrations) {
                 listenerRegistration.remove();
@@ -91,7 +83,6 @@ public class NotAbout extends DaggerFragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        binding.layoutPrincipal.removeAllViews();
         onClickListener = null;
         viewModel = null;
         fragmentResultListener = null;

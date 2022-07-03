@@ -35,29 +35,27 @@ public class ContactsAdapter extends ListAdapter<Contacto, ContactsAdapter.ViewH
             return;
         }
 
-        holder.contacto.setText(String.valueOf(contacto.getNrTelefone()));
+        holder.contacto.setText("+258 ".concat(String.valueOf(contacto.getNrTelefone())));
     }
 
     @Override
     public void onViewAttachedToWindow(@NonNull ViewHolder holder) {
         super.onViewAttachedToWindow(holder);
-        holder.copy.setOnClickListener(onClickListener);
+        holder.itemView.setOnClickListener(onClickListener);
     }
 
     @Override
     public void onViewDetachedFromWindow(@NonNull ViewHolder holder) {
         super.onViewDetachedFromWindow(holder);
-        holder.copy.setOnClickListener(null);
+        holder.itemView.setOnClickListener(null);
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
         protected TextView contacto;
-        protected View copy;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
             contacto = itemView.findViewById(R.id.txtContacto);
-            copy = itemView.findViewById(R.id.copy);
         }
     }
 }

@@ -7,7 +7,7 @@
     android:layout_height="wrap_content">
 
     <androidx.appcompat.widget.AppCompatImageView
-        android:id="@+id/btnShow"
+        android:id="@+id/show"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="18dp"
@@ -20,10 +20,10 @@
         android:id="@+id/txtDiaSemana"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:paddingStart="28dp"
+        android:layout_marginStart="28dp"
         android:textAppearance="?android:attr/textAppearanceListItemSecondary"
         app:layout_constraintBottom_toTopOf="@+id/txtHorario"
-        app:layout_constraintStart_toEndOf="@+id/btnShow"
+        app:layout_constraintStart_toEndOf="@+id/show"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_chainStyle="packed" />
 
@@ -31,12 +31,21 @@
         android:id="@+id/txtHorario"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:paddingStart="28dp"
         android:visibility="gone"
         android:textAppearance="?android:attr/textAppearanceSmall"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="@+id/txtDiaSemana"
         app:layout_constraintTop_toBottomOf="@+id/txtDiaSemana" />
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/edit"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:visibility="gone"
+        android:layout_marginEnd="18dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/edit" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

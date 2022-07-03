@@ -19,6 +19,7 @@ import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.textview.MaterialTextView;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.ListenerRegistration;
@@ -39,7 +40,6 @@ import kev.app.timeless.api.Service;
 import kev.app.timeless.databinding.FragmentAboutBinding;
 import kev.app.timeless.di.viewModelFactory.ViewModelProvidersFactory;
 import kev.app.timeless.model.User;
-import kev.app.timeless.util.ScheduleAdapter;
 import kev.app.timeless.util.State;
 import kev.app.timeless.viewmodel.MapViewModel;
 
@@ -182,7 +182,8 @@ public class AboutFragment extends DaggerFragment implements View.OnClickListene
                     break;
                 case R.id.layoutError: inicializarRetryBtn(v);
                     break;
-                case R.id.about: inicializarNome(v);
+                case R.id.about:
+                case R.id.not_about: inicializarNome(v);
                     break;
             }
         }
@@ -191,8 +192,20 @@ public class AboutFragment extends DaggerFragment implements View.OnClickListene
     private void inicializarNome(View v) {
         ConstraintLayout layout = (ConstraintLayout) v;
 
+        Map<String, Object> map = viewModel.getEstabelecimentos().get(bundle.getString("id"));
+
+        String nome = String.valueOf(map.get("nome"));
+
         for (int i = 0 ; i < layout.getChildCount() ; i++) {
             View child = layout.getChildAt(i);
+
+            if (child.getId() == R.id.txtNome) {
+                MaterialTextView txtNome = (MaterialTextView) child;
+
+                if (!TextUtils.equals(nome, txtNome.getText())) {
+                    txtNome.setText(TextUtils.isEmpty(nome) ? "Sem nome" : nome);
+                }
+            }
 
             if (child.hasOnClickListeners()) {
                 child.setOnClickListener(null);
@@ -355,7 +368,7 @@ public class AboutFragment extends DaggerFragment implements View.OnClickListene
             return;
         }
 
-        String key;
+        String key = null;
 
         switch (view.getId()) {
             case R.id.edit: key = "InsertNameFragment";

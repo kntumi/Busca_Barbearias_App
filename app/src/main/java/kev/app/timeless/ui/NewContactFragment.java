@@ -8,8 +8,6 @@ import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
-import android.widget.CompoundButton;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -18,11 +16,8 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.FragmentResultListener;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.recyclerview.widget.DiffUtil;
-import androidx.recyclerview.widget.LinearLayoutManager;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,18 +30,15 @@ import kev.app.timeless.R;
 import kev.app.timeless.api.Service;
 import kev.app.timeless.databinding.FragmentNewContactBinding;
 import kev.app.timeless.di.viewModelFactory.ViewModelProvidersFactory;
-import kev.app.timeless.util.ContactsTypeAdapter;
 import kev.app.timeless.viewmodel.MapViewModel;
 
-public class NewContactFragment extends DaggerFragment implements View.OnClickListener, CompoundButton.OnCheckedChangeListener {
+public class NewContactFragment extends DaggerFragment implements View.OnClickListener{
     private FragmentNewContactBinding binding;
     private List<Disposable> disposables;
-    private ContactsTypeAdapter contactsTypeAdapter;
     private Bundle bundle;
     private FragmentResultListener parentResultListener;
     private Toolbar.OnMenuItemClickListener onMenuItemClickListener;
     private Map<String, Object> map;
-    private ViewTreeObserver.OnGlobalLayoutListener onGlobalLayoutListener;
     private TextWatcher textWatcher;
     private MapViewModel viewModel;
 
@@ -66,22 +58,6 @@ public class NewContactFragment extends DaggerFragment implements View.OnClickLi
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        contactsTypeAdapter = new ContactsTypeAdapter(new DiffUtil.ItemCallback<String>() {
-            @Override
-            public boolean areItemsTheSame(@NonNull String oldItem, @NonNull String newItem) {
-                System.out.println("areItemsTheSame ");
-                return false;
-            }
-
-            @Override
-            public boolean areContentsTheSame(@NonNull String oldItem, @NonNull String newItem) {
-                System.out.println("areContentsTheSame ");
-                return false;
-            }
-        }, this);
-        contactsTypeAdapter.submitList(Arrays.asList("Sim", "Não"));
-        binding.recyclerView.setLayoutManager(new LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false));
-        binding.recyclerView.setAdapter(contactsTypeAdapter);
         parentResultListener = this::observarParent;
         textWatcher = new TextWatcher() {
             @Override
@@ -151,10 +127,6 @@ public class NewContactFragment extends DaggerFragment implements View.OnClickLi
             binding.barra.setOnMenuItemClickListener(null);
         }
 
-        if (onGlobalLayoutListener != null) {
-            binding.recyclerView.getViewTreeObserver().removeOnGlobalLayoutListener(onGlobalLayoutListener);
-        }
-
         if (disposables != null) {
             for (Disposable disposable : disposables) {
                 if (!disposable.isDisposed()) {
@@ -169,13 +141,9 @@ public class NewContactFragment extends DaggerFragment implements View.OnClickLi
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        binding.recyclerView.setAdapter(null);
-        binding.recyclerView.setLayoutManager(null);
         onMenuItemClickListener = null;
         viewModel = null;
-        onGlobalLayoutListener = null;
         map = null;
-        contactsTypeAdapter = null;
         textWatcher = null;
         disposables = null;
         parentResultListener = null;
@@ -206,40 +174,6 @@ public class NewContactFragment extends DaggerFragment implements View.OnClickLi
             bundle.putString("idToUpdate", String.valueOf(result.getInt("idToUpdate")));
             binding.nrTelefone.setText(bundle.getString("idToUpdate"));
             binding.barra.setTitle("Editar contacto");
-
-            if (onGlobalLayoutListener == null) {
-                onGlobalLayoutListener = () -> {
-                    try {
-                        Map<String, Object> map = viewModel.getContactos().get(bundle.getString("id")).get(bundle.getString("idToUpdate"));
-                        boolean isChecked = Boolean.parseBoolean(String.valueOf(map.get("contactoPrincipal")));
-
-                        if (bundle.get("selectedPosition") != null) {
-                            CompoundButton button = (CompoundButton) binding.recyclerView.getChildAt(bundle.getInt("selectedPosition"));
-
-                            if (button.isChecked() == isChecked) {
-                                return;
-                            }
-                        }
-
-                        String txtBtn = isChecked ? "Sim" : "Não";
-
-                        for (int n = 0 ; n < binding.recyclerView.getChildCount() ; n++) {
-                            CompoundButton button = (CompoundButton) binding.recyclerView.getChildAt(n);
-
-                            if (!TextUtils.equals(txtBtn, button.getText())) {
-                                continue;
-                            }
-
-                            button.setChecked(true);
-                            break;
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                };
-            }
-
-            binding.recyclerView.getViewTreeObserver().addOnGlobalLayoutListener(onGlobalLayoutListener);
         }
 
         if (TextUtils.isEmpty(binding.barra.getTitle())) {
@@ -266,37 +200,6 @@ public class NewContactFragment extends DaggerFragment implements View.OnClickLi
         requireParentFragment().requireParentFragment().getChildFragmentManager().setFragmentResult("LayoutFragment", b);
     }
 
-    @Override
-    public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-        for (int i = 0 ; i < binding.recyclerView.getChildCount() ; i++) {
-            if (compoundButton != binding.recyclerView.getChildAt(i)) {
-                continue;
-            }
-
-            if (b) {
-                bundle.putInt("selectedPosition", i);
-            } else {
-                bundle.remove("selectedPosition");
-            }
-
-            break;
-        }
-
-        for (int i = 0 ; i < binding.recyclerView.getChildCount() ; i++) {
-            if (i == bundle.getInt("selectedPosition")) {
-                continue;
-            }
-
-            CompoundButton button = (CompoundButton) binding.recyclerView.getChildAt(i);
-            button.setChecked(false);
-            break;
-        }
-
-        for (int i = 0 ; i < binding.barra.getMenu().size() ; i++) {
-            binding.barra.getMenu().getItem(i).setEnabled(bundle.containsKey("selectedPosition"));
-        }
-    }
-
     private boolean observarOnMenuItemClick(MenuItem item) {
         if (map == null) {
             map = new HashMap<>();
@@ -304,15 +207,6 @@ public class NewContactFragment extends DaggerFragment implements View.OnClickLi
 
         map.put("contactoPrincipal", bundle.getInt("selectedPosition") == 0);
 
-        return disposables.add(service.getBarbeariaService().inserirContacto(bundle.getString("id"), binding.nrTelefone.getText().toString(), map).doOnSubscribe(disposable -> {
-            if (onGlobalLayoutListener != null) {
-                binding.recyclerView.getViewTreeObserver().removeOnGlobalLayoutListener(onGlobalLayoutListener);
-            }
-        })
-                .doFinally(() -> {
-                    if (onGlobalLayoutListener != null) {
-                        binding.recyclerView.getViewTreeObserver().addOnGlobalLayoutListener(onGlobalLayoutListener);
-                    }
-                }).doOnEvent((aBoolean, throwable) -> bundle.putString("status", throwable == null ? String.valueOf(aBoolean) : "between")).doOnSubscribe(disposable -> item.setEnabled(false)).doFinally(() -> item.setEnabled(true)).subscribe(this::observarResposta, throwable -> Toast.makeText(requireActivity(), "", Toast.LENGTH_LONG).show()));
+        return disposables.add(service.getBarbeariaService().inserirContacto(bundle.getString("id"), binding.nrTelefone.getText().toString(), map).doOnEvent((aBoolean, throwable) -> bundle.putString("status", throwable == null ? String.valueOf(aBoolean) : "between")).doOnSubscribe(disposable -> item.setEnabled(false)).doFinally(() -> item.setEnabled(true)).subscribe(this::observarResposta, throwable -> Toast.makeText(requireActivity(), "", Toast.LENGTH_LONG).show()));
     }
 }
