@@ -19,12 +19,22 @@
         <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/layout/not_about.xml" value="0.5" />
         <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/layout/text.xml" value="0.20416666666666666" />
         <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/menu/action_mode.xml" value="0.5" />
+        <entry key="..\:/Users/Dell/Documents/New folder (2)/Busca_Barbearias_App/app/src/main/res/drawable/ic_baseline_check_box_24.xml" value="0.1865" />
+        <entry key="..\:/Users/Dell/Documents/New folder (2)/Busca_Barbearias_App/app/src/main/res/drawable/ic_baseline_check_box_outline_blank_24.xml" value="0.1865" />
+        <entry key="..\:/Users/Dell/Documents/New folder (2)/Busca_Barbearias_App/app/src/main/res/drawable/ic_baseline_indeterminate_check_box.xml" value="0.1865" />
+        <entry key="..\:/Users/Dell/Documents/New folder (2)/Busca_Barbearias_App/app/src/main/res/drawable/ic_baseline_local_offer_24.xml" value="0.1865" />
+        <entry key="..\:/Users/Dell/Documents/New folder (2)/Busca_Barbearias_App/app/src/main/res/layout/fragment_manage_schedule.xml" value="0.33" />
+        <entry key="..\:/Users/Dell/Documents/New folder (2)/Busca_Barbearias_App/app/src/main/res/menu/opcoes_schedule.xml" value="0.20416666666666666" />
         <entry key="..\:/Users/Dell/Documents/New folder/Busca_Barbearias_App/app/src/main/res/drawable/encerrar.xml" value="0.176" />
         <entry key="..\:/Users/Dell/Documents/New folder/Busca_Barbearias_App/app/src/main/res/layout/fragment_manage_schedule.xml" value="0.33" />
         <entry key="..\:/Users/Dell/Documents/New folder/Busca_Barbearias_App/app/src/main/res/layout/fragment_schedule.xml" value="0.33" />
         <entry key="..\:/Users/Dell/Documents/New folder/Busca_Barbearias_App/app/src/main/res/layout/layout_schedule_item.xml" value="0.20416666666666666" />
         <entry key="..\:/Users/Dell/Documents/New folder/Busca_Barbearias_App/app/src/main/res/menu/inserir.xml" value="0.1671875" />
         <entry key="..\:/Users/Dell/Documents/New folder/Busca_Barbearias_App/app/src/main/res/menu/opcoes_schedule.xml" value="0.25" />
+        <entry key="..\:/Users/Dell/Documents/Zoom/Busca_Barbearias_App/app/src/main/res/layout/control_user.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/Dell/Documents/Zoom/Busca_Barbearias_App/app/src/main/res/layout/eies.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/Dell/Documents/Zoom/Busca_Barbearias_App/app/src/main/res/layout/fragment_manage_schedule.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/Dell/Documents/Zoom/Busca_Barbearias_App/app/src/main/res/layout/klay.xml" value="0.203125" />
         <entry key="..\:/Users/Kevin Ntumi/AndroidStudioProjects/Busca_Barbearias_App/app/src/main/res/drawable/status.xml" value="0.2255" />
         <entry key="..\:/Users/Kevin Ntumi/AndroidStudioProjects/Busca_Barbearias_App/app/src/main/res/layout/fragment_manage_schedule.xml" value="0.4249737670514166" />
         <entry key="..\:/Users/Kevin Ntumi/AndroidStudioProjects/Busca_Barbearias_App/app/src/main/res/menu/opcoes_schedule.xml" value="0.33" />
@@ -54,6 +64,9 @@
         <entry key="..\:/Users/Kevin Ntumi/Documents/Busca_Barbearias_App/Busca_Barbearias_App/app/src/main/res/layout/not_about.xml" value="0.5" />
         <entry key="..\:/Users/Kevin Ntumi/Documents/Busca_Barbearias_App/Busca_Barbearias_App/app/src/main/res/menu/menu_user.xml" value="0.1265625" />
         <entry key="..\:/Users/Kevin Ntumi/Documents/Busca_Barbearias_App/Busca_Barbearias_App/app/src/main/res/menu/opcoes_schedule.xml" value="0.33" />
+        <entry key="..\:/Users/Public/Pictures/Busca_Barbearias_App/app/src/main/res/layout/fragment_manage_schedule.xml" value="0.33" />
+        <entry key="..\:/Users/Public/Pictures/Busca_Barbearias_App/app/src/main/res/layout/fragment_schedule.xml" value="0.27291666666666664" />
+        <entry key="..\:/Users/Public/Pictures/Busca_Barbearias_App/app/src/main/res/menu/opcoes_schedule.xml" value="0.27291666666666664" />
       </map>
     </option>
   </component>

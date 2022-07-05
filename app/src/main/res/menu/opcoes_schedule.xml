@@ -13,11 +13,12 @@
     <item android:id="@+id/encerrar"
         android:icon="@drawable/encerrar"
         app:showAsAction="ifRoom"
-        android:title="Encerarr" />
+        android:visible="false"
+        android:title="Encerrar" />
 
     <item android:id="@+id/inserir"
         android:icon="@drawable/done"
         app:showAsAction="ifRoom"
-        tools:ignore="MenuTitle" />
+        android:title="Inserir"/>
 
 </menu>

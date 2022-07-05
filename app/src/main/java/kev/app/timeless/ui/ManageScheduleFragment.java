@@ -12,11 +12,18 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.Toolbar;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.databinding.DataBindingUtil;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentResultListener;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputLayout;
+import com.google.android.material.textview.MaterialTextView;
+import com.google.android.material.timepicker.MaterialTimePicker;
+import com.google.android.material.timepicker.TimeFormat;
 
 import java.util.Calendar;
 import java.util.HashMap;
@@ -38,6 +45,8 @@ public class ManageScheduleFragment extends DaggerFragment implements View.OnCli
     private FragmentResultListener parentResultListener;
     private Disposable disposable;
     private Toolbar.OnMenuItemClickListener onMenuItemClickListener;
+    private FragmentManager.FragmentLifecycleCallbacks fragmentLifecycleCallbacks;
+    private MaterialTimePicker materialTimePicker;
     private MapViewModel viewModel;
 
     @Inject
@@ -54,6 +63,45 @@ public class ManageScheduleFragment extends DaggerFragment implements View.OnCli
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         viewModel = new ViewModelProvider(requireActivity(), providerFactory).get(MapViewModel.class);
+        materialTimePicker = new MaterialTimePicker.Builder().setTimeFormat(android.text.format.DateFormat.is24HourFormat(requireContext()) ? TimeFormat.CLOCK_24H : TimeFormat.CLOCK_12H).setInputMode(MaterialTimePicker.INPUT_MODE_CLOCK).setTheme(R.style.ThemeOverlay_MaterialComponents_TimePicker).build();
+        fragmentLifecycleCallbacks = new FragmentManager.FragmentLifecycleCallbacks() {
+            @Override
+            public void onFragmentResumed(@NonNull FragmentManager fm, @NonNull Fragment f) {
+                super.onFragmentResumed(fm, f);
+                if (f.getClass().getSimpleName().equals(materialTimePicker.getClass().getSimpleName())) {
+                    ConstraintLayout layout = (ConstraintLayout) f.getView();
+
+                    for (int i = 0 ; i < layout.getChildCount() ; i++) {
+                        View v = layout.getChildAt(i);
+
+                        if (v.getId() != R.id.header_title) {
+                            if (v.getId() == R.id.material_timepicker_mode_button && v.getVisibility() == View.VISIBLE) {
+                                v.setVisibility(View.GONE);
+                            }
+
+                            if (v.getId() == R.id.material_timepicker_cancel_button) {
+                                MaterialButton materialButton = (MaterialButton) v;
+
+                                if (!TextUtils.equals(materialButton.getText(), "Cancelar")) {
+                                    materialButton.setText("Cancelar");
+                                }
+                            }
+
+                            continue;
+                        }
+
+                        MaterialTextView materialTextView = (MaterialTextView) v;
+
+                        String txt = bundle.getInt("selectedEndIconParentId") == R.id.horaAbertura ? "Selecione a hora de abertura" : "Selecione a hora de encerramento";
+
+                        if (!TextUtils.equals(materialTextView.getText(), txt)) {
+                            materialTextView.setText(txt);
+                        }
+                    }
+                }
+            }
+        };
+
         horario = new HashMap<>();
 
         if (savedInstanceState == null) {
@@ -69,6 +117,10 @@ public class ManageScheduleFragment extends DaggerFragment implements View.OnCli
         }
 
         binding.barra.setNavigationOnClickListener(this);
+        binding.horaAbertura.setEndIconOnClickListener(this);
+        binding.horaEncerramento.setEndIconOnClickListener(this);
+        materialTimePicker.addOnPositiveButtonClickListener(this);
+        getChildFragmentManager().registerFragmentLifecycleCallbacks(fragmentLifecycleCallbacks, false);
     }
 
     @Override
@@ -76,6 +128,10 @@ public class ManageScheduleFragment extends DaggerFragment implements View.OnCli
         super.onPause();
         requireParentFragment().getChildFragmentManager().clearFragmentResultListener(getClass().getSimpleName());
         binding.barra.setNavigationOnClickListener(null);
+        binding.horaAbertura.setEndIconOnClickListener(null);
+        binding.horaEncerramento.setEndIconOnClickListener(null);
+        materialTimePicker.removeOnPositiveButtonClickListener(this);
+        getChildFragmentManager().unregisterFragmentLifecycleCallbacks(fragmentLifecycleCallbacks);
 
         if (disposable != null) {
             disposable.dispose();
@@ -91,8 +147,11 @@ public class ManageScheduleFragment extends DaggerFragment implements View.OnCli
         super.onDestroyView();
         bundle.clear();
         binding.manageSchedule.removeAllViews();
+        materialTimePicker.dismiss();
         horario.clear();
         bundle = null;
+        materialTimePicker = null;
+        fragmentLifecycleCallbacks = null;
         onMenuItemClickListener = null;
         disposable = null;
         parentResultListener = null;
@@ -136,6 +195,10 @@ public class ManageScheduleFragment extends DaggerFragment implements View.OnCli
             binding.barra.setSubtitle(getDiaSemana(bundle.getInt("chosenDay")));
         }
 
+        if (TextUtils.isEmpty(binding.barra.getTitle())) {
+            binding.barra.setTitle("Editar horário");
+        }
+
         try {
             Map<String, Object> map = viewModel.getHorários().get(bundle.getString("id")).get(String.valueOf(bundle.getInt("chosenDay")));
 
@@ -176,9 +239,7 @@ public class ManageScheduleFragment extends DaggerFragment implements View.OnCli
 
         for (int i = 0 ; i < menu.size() ; i++) {
             MenuItem menuItem = menu.getItem(i);
-
-            onMenuItemClickListener.onMenuItemClick(menuItem);
-            break;
+            menuItem.setVisible(bundle.containsKey("isClosed") && bundle.getBoolean("isClosed") ? menuItem.getItemId() == R.id.encerrar || menuItem.getItemId() == R.id.inserir : menuItem.getItemId() == R.id.nao_encerrar || menuItem.getItemId() == R.id.inserir);
         }
     }
 
@@ -197,12 +258,16 @@ public class ManageScheduleFragment extends DaggerFragment implements View.OnCli
 
     private boolean observarOnMenuItemClick(MenuItem item) {
         switch (item.getItemId()) {
-            case R.id.nao_encerrar: reabrir(item);
+            case R.id.nao_encerrar: encerrar();
                 break;
-            case R.id.encerrar: encerrar(item);
+            case R.id.encerrar: reabrir();
                 break;
             case R.id.inserir: if (disposable != null) {
                                    disposable.dispose();
+                               }
+
+                               if (TextUtils.isEmpty(horario.get("horaAbertura")) || TextUtils.isEmpty(horario.get("horaEncerramento"))) {
+                                   return false;
                                }
 
                                disposable = viewModel.getService().getBarbeariaService().inserirServiço(bundle.getString("id"), horario).subscribe(aBoolean -> Toast.makeText(requireActivity(), aBoolean ? "" : "", Toast.LENGTH_LONG).show(), throwable -> Toast.makeText(requireActivity(), "", Toast.LENGTH_LONG).show());
@@ -212,11 +277,36 @@ public class ManageScheduleFragment extends DaggerFragment implements View.OnCli
         return true;
     }
 
-    private void reabrir(MenuItem item) {
+    private void reabrir() {
+        for (int i = 0 ; i < binding.manageSchedule.getChildCount() ; i++) {
+            View v = binding.manageSchedule.getChildAt(i);
+
+            if (v.getId() == R.id.barra) {
+                continue;
+            }
+
+            if (v.getId() == R.id.horaAbertura || v.getId() == R.id.horaEncerramento) {
+                TextInputLayout textInputLayout = (TextInputLayout) v;
+
+                for (int j = 0 ; j < textInputLayout.getChildCount() ; j++) {
+                    textInputLayout.getChildAt(j).setEnabled(true);
+                }
+            }
+
+            v.setEnabled(true);
+        }
+
+        Menu menu = binding.barra.getMenu();
+
+        for (int i = 0 ; i < menu.size() ; i++) {
+            MenuItem menuItem = menu.getItem(i);
+            menuItem.setVisible(menuItem.getItemId() == R.id.nao_encerrar || menuItem.getItemId() == R.id.inserir);
+        }
+
         bundle.putBoolean("isClosed", false);
     }
 
-    private void encerrar(MenuItem item) {
+    private void encerrar() {
         for (int i = 0 ; i < binding.manageSchedule.getChildCount() ; i++) {
             View v = binding.manageSchedule.getChildAt(i);
 
@@ -235,20 +325,71 @@ public class ManageScheduleFragment extends DaggerFragment implements View.OnCli
             v.setEnabled(false);
         }
 
-        bundle.putBoolean("isClosed", false);
+        Menu menu = binding.barra.getMenu();
 
-        if (!item.isVisible()) {
-            item.setVisible(true);
+        for (int i = 0 ; i < menu.size() ; i++) {
+            MenuItem menuItem = menu.getItem(i);
+            menuItem.setVisible(menuItem.getItemId() == R.id.encerrar || menuItem.getItemId() == R.id.inserir);
         }
 
-        
-        System.out.println(bundle.containsKey("isClosed") && bundle.getBoolean("isClosed"));
+        bundle.putBoolean("isClosed", true);
     }
 
     @Override
     public void onClick(View view) {
-        if (view.getId() == View.NO_ID) {
-            requireParentFragment().getChildFragmentManager().beginTransaction().replace(R.id.layoutPrincipal, new ScheduleFragment()).commit();
+        switch (view.getId()) {
+            case View.NO_ID: requireParentFragment().getChildFragmentManager().beginTransaction().replace(R.id.layoutPrincipal, new ScheduleFragment()).commit();
+                break;
+            case R.id.text_input_end_icon: verQualEndIcon(view);
+                break;
+            case R.id.material_timepicker_ok_button: mudarHoras();
+                break;
         }
+    }
+
+    private void verQualEndIcon(View endIconView) {
+        for (int i = 0 ; i < binding.manageSchedule.getChildCount() ; i++) {
+            View v = binding.manageSchedule.getChildAt(i);
+
+            if (v.getId() == R.id.horaAbertura || v.getId() == R.id.horaEncerramento) {
+                TextInputLayout textInputLayout = (TextInputLayout) v;
+
+                for (int j = 0 ; j < textInputLayout.getChildCount() ; j++) {
+                    ViewGroup viewGroup = (ViewGroup) textInputLayout.getChildAt(j);
+
+                    for (int k = 0 ; k < viewGroup.getChildCount() ; k++) {
+                        View vChild = viewGroup.getChildAt(k);
+
+                        if (vChild instanceof ViewGroup) {
+                            ViewGroup viewGroup1 = (ViewGroup) vChild;
+
+                            for (int l = 0 ; l < viewGroup1.getChildCount() ; l++) {
+                                View vChild1 = viewGroup1.getChildAt(l);
+
+                                if (vChild1 instanceof ViewGroup) {
+                                    ViewGroup viewGroup2 = (ViewGroup) vChild1;
+
+                                    for (int m = 0 ; m < viewGroup2.getChildCount() ; m++) {
+                                        View vChild2 = viewGroup2.getChildAt(m);
+
+                                        if (!endIconView.equals(vChild2)) {
+                                            continue;
+                                        }
+
+                                        bundle.putInt("selectedEndIconParentId", textInputLayout.getId());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        materialTimePicker.show(getChildFragmentManager(), null);
+    }
+
+    private void mudarHoras() {
+
     }
 }

@@ -78,25 +78,31 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
         super.onViewCreated(view, savedInstanceState);
         viewModel = new ViewModelProvider(requireActivity(), providerFactory).get(MapViewModel.class);
         observer = users -> loggedInUserId = users.size() == 0 ? null : users.get(users.size() - 1).getId();
-        parentResultListener = this::observarParent;
-        map = new HashMap<>();
         onGlobalLayoutListener = this::observarLayout;
+        map = new HashMap<>();
+
+        if (savedInstanceState == null) {
+            parentResultListener = this::observarParent;
+        }
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        requireParentFragment().getChildFragmentManager().setFragmentResultListener(getClass().getSimpleName(), this, parentResultListener);
-        binding.barra.setNavigationOnClickListener(this);
+        if (parentResultListener != null) {
+            requireParentFragment().getChildFragmentManager().setFragmentResultListener(getClass().getSimpleName(), this, parentResultListener);
+        }
+
         binding.layoutPrincipal.getViewTreeObserver().addOnGlobalLayoutListener(onGlobalLayoutListener);
+        binding.barra.setNavigationOnClickListener(this);
     }
 
     @Override
     public void onPause() {
         super.onPause();
         requireParentFragment().getChildFragmentManager().clearFragmentResultListener(getClass().getSimpleName());
-        binding.barra.setNavigationOnClickListener(null);
         binding.layoutPrincipal.getViewTreeObserver().removeOnGlobalLayoutListener(onGlobalLayoutListener);
+        binding.barra.setNavigationOnClickListener(null);
 
         if (disposable != null) {
             if (!disposable.isDisposed()) {
@@ -148,6 +154,10 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
     public void onViewStateRestored(@Nullable Bundle savedInstanceState) {
         super.onViewStateRestored(savedInstanceState);
         bundle = savedInstanceState == null ? new Bundle() : savedInstanceState.getBundle("bundle");
+
+        if (savedInstanceState != null) {
+            observarParent(null, bundle);
+        }
     }
 
     @Override
