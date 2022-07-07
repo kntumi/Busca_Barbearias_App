@@ -390,6 +390,31 @@ public class ManageScheduleFragment extends DaggerFragment implements View.OnCli
     }
 
     private void mudarHoras() {
+        horario.put(bundle.getInt("selectedEndIconParentId") == binding.horaAbertura.getId() ? "horaAbertura" : "horaEncerramento", String.valueOf(materialTimePicker.getHour()).concat(":".concat(String.valueOf(materialTimePicker.getMinute()))));
 
+        for (String key : horario.keySet()) {
+            String s = horario.get(key);
+
+            if (s.length() != 5) {
+                String[] chars = s.split("\\.");
+
+                for (int i = 0 ; i < chars.length ; i++) {
+                    switch (i) {
+                        case 0: s = chars[i].length() == 1 ? "0".concat(chars[i]) : chars[i];
+                            break;
+                        case 1: s = s.concat(":".concat(chars[i].length() == 1 ? chars[i].concat("0") : chars[i]));
+                            break;
+                    }
+                }
+            }
+
+            if (!TextUtils.equals(horario.get(key), s)) {
+                horario.put(key, s);
+            }
+        }
+
+        System.out.println(horario);
+
+        bundle.remove("selectedEndIconParentId");
     }
 }
