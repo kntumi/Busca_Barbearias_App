@@ -13,6 +13,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.AppCompatTextView;
 import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.core.text.PrecomputedTextCompat;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.FragmentResultListener;
 import androidx.lifecycle.Observer;
@@ -231,7 +232,7 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
             return;
         }
 
-        appCompatTextView.setText(txtAMostrar);
+        appCompatTextView.setPrecomputedText(PrecomputedTextCompat.create(txtAMostrar, appCompatTextView.getTextMetricsParamsCompat()));
     }
 
     private void inicializarRecyclerView(View v) {
@@ -251,21 +252,18 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
             }, this, this);
         }
 
+        if (linearLayoutManager == null) {
+            linearLayoutManager = new LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false);
+        }
+
+        if (!linearLayoutManager.equals(recyclerView.getLayoutManager())) {
+            recyclerView.setLayoutManager(linearLayoutManager);
+        }
+
         if (scheduleAdapter.equals(recyclerView.getAdapter())) {
             return;
         }
 
-        if (scheduleAdapter != null) {
-            recyclerView.setAdapter(null);
-        }
-
-        if (linearLayoutManager == null) {
-            linearLayoutManager = new LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false);
-        } else {
-            recyclerView.setLayoutManager(null);
-        }
-
-        recyclerView.setLayoutManager(linearLayoutManager);
         recyclerView.setAdapter(scheduleAdapter);
 
         ArrayList<Horário> hs = new ArrayList<>();
@@ -368,6 +366,7 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
 
         LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         layoutParams.topMargin = 24;
+        layoutParams.bottomMargin = 36;
 
         removerViewsDoLayout();
 

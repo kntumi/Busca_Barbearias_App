@@ -20,7 +20,8 @@
             app:navigationIcon="@drawable/voltar_icn"
             app:menu="@menu/inserir"
             app:title="Editar nome"
-            app:titleTextAppearance="@style/textAppearanceBarra" />
+            app:subtitleTextAppearance="@style/TextAppearance.AppCompat.Caption"
+            app:titleTextAppearance="?textAppearanceListItem"/>
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/nome"
@@ -30,6 +31,7 @@
             android:layout_marginEnd="24dp"
             android:layout_marginTop="18dp"
             android:layout_marginBottom="36dp"
+            android:hint="Nome"
             app:boxBackgroundColor="?android:colorBackground"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"

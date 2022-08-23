@@ -3,22 +3,56 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/Users/Dell/.gradle/caches/transforms-2/files-2.1/8a64dd3ec1b0d74f42c489fc5de746c9/appcompat-1.3.0/res/layout/abc_search_view.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/drawable/account.xml" value="0.2115" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/drawable/bg_layout.xml" value="0.2115" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/drawable/bg_toolbar.xml" value="0.2105" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/drawable/bg_view.xml" value="0.2115" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/drawable/btn.xml" value="0.2115" />
         <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/drawable/copy.xml" value="0.17" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/drawable/fechar_icn.xml" value="0.2115" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/drawable/key.xml" value="0.1865" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/drawable/key_off.xml" value="0.1865" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/drawable/lock-48px.xml" value="0.1865" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/drawable/lock.xml" value="0.1865" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/drawable/lock_open.xml" value="0.1865" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/drawable/search.xml" value="0.2115" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/drawable/settings.xml" value="0.2115" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/drawable/terminar_sessao.xml" value="0.2115" />
         <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/layout/about.xml" value="0.5" />
-        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/layout/contact.xml" value="0.33" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/layout/activity_maps.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/layout/contact.xml" value="0.5" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/layout/content_map.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/layout/control_user.xml" value="0.4531791907514451" />
         <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/layout/error.xml" value="0.20416666666666666" />
         <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/layout/fragment_about.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/layout/fragment_loading.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/layout/fragment_login.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/layout/fragment_manage_schedule.xml" value="0.33" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/layout/fragment_maps.xml" value="0.4531791907514451" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/layout/fragment_new_contact.xml" value="0.33" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/layout/fragment_profile.xml" value="0.20416666666666666" />
         <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/layout/fragment_schedule.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/layout/fragment_search.xml" value="0.33" />
         <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/layout/insert_name.xml" value="0.25" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/layout/layout_control_non_user.xml" value="0.4531791907514451" />
         <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/layout/layout_default.xml" value="0.20416666666666666" />
         <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/layout/layout_fragment.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/layout/layout_non_user.xml" value="0.20416666666666666" />
         <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/layout/layout_schedule_item.xml" value="0.5" />
-        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/layout/layout_user.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/layout/layout_user.xml" value="0.5" />
         <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/layout/list.xml" value="0.20416666666666666" />
         <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/layout/loading.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/layout/manage_schedule_item.xml" value="0.33" />
         <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/layout/not_about.xml" value="0.5" />
         <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/layout/text.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/layout/type_contacts.xml" value="0.33" />
         <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/menu/action_mode.xml" value="0.5" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/menu/inserir.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/menu/opcoes_schedule.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/menu/profile.xml" value="0.203125" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/menu/profile_menu.xml" value="0.20416666666666666" />
+        <entry key="..\:/Users/Dell/Documents/Busca_Barbearias_App/app/src/main/res/xml/root_preferences.xml" value="0.33" />
         <entry key="..\:/Users/Dell/Documents/New folder (2)/Busca_Barbearias_App/app/src/main/res/drawable/ic_baseline_check_box_24.xml" value="0.1865" />
         <entry key="..\:/Users/Dell/Documents/New folder (2)/Busca_Barbearias_App/app/src/main/res/drawable/ic_baseline_check_box_outline_blank_24.xml" value="0.1865" />
         <entry key="..\:/Users/Dell/Documents/New folder (2)/Busca_Barbearias_App/app/src/main/res/drawable/ic_baseline_indeterminate_check_box.xml" value="0.1865" />

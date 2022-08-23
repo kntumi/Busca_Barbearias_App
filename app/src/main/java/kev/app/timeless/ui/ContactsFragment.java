@@ -1,14 +1,11 @@
 package kev.app.timeless.ui;
 
-import android.content.ClipboardManager;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
 import android.widget.LinearLayout;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -19,7 +16,6 @@ import androidx.fragment.app.FragmentResultListener;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.DiffUtil;
-import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -30,6 +26,7 @@ import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,21 +47,19 @@ import kev.app.timeless.util.ContactsAdapter;
 import kev.app.timeless.util.State;
 import kev.app.timeless.viewmodel.MapViewModel;
 
-public class ContactsFragment extends DaggerFragment implements View.OnClickListener, View.OnLongClickListener, AsyncLayoutInflater.OnInflateFinishedListener {
+public class ContactsFragment extends DaggerFragment implements View.OnClickListener, AsyncLayoutInflater.OnInflateFinishedListener {
     private Observer<List<User>> observer;
     private LayoutDefaultBinding binding;
-    private Bundle bundle, b;
+    private Bundle bundle;
     private ContactsAdapter contactsAdapter;
     private Map<State, LinearLayout.LayoutParams> layoutParamsMap;
     private AsyncLayoutInflater asyncLayoutInflater;
     private FragmentResultListener parentResultListener;
     private ListenerRegistration listenerRegistration;
-    private ItemTouchHelper itemTouchHelper;
-    private ClipboardManager clipboardManager;
     private Map<State, View> map;
     private MapViewModel viewModel;
     private LinearLayoutManager linearLayoutManager;
-    private ViewTreeObserver.OnGlobalLayoutListener onGlobalLayoutListener;
+    private List<Contacto> contactos, contactosPrincipais, contactosSecundarios;
     private String loggedInUserId;
     private Disposable disposable;
 
@@ -86,17 +81,22 @@ public class ContactsFragment extends DaggerFragment implements View.OnClickList
         layoutParamsMap = new HashMap<>();
         asyncLayoutInflater = new AsyncLayoutInflater(requireContext());
         observer = this::observarUser;
-        parentResultListener = this::observarParent;
-        onGlobalLayoutListener = this::observarLayout;
         binding.barra.setTitle("Contactos");
+
+        if (savedInstanceState == null) {
+            parentResultListener = this::observarParent;
+        }
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        requireParentFragment().getChildFragmentManager().setFragmentResultListener(getClass().getSimpleName(), this, parentResultListener);
+
+        if (parentResultListener != null) {
+            requireParentFragment().getChildFragmentManager().setFragmentResultListener(getClass().getSimpleName(), this, parentResultListener);
+        }
+
         binding.barra.setNavigationOnClickListener(this);
-        binding.layoutPrincipal.getViewTreeObserver().addOnGlobalLayoutListener(onGlobalLayoutListener);
     }
 
     @Override
@@ -104,11 +104,6 @@ public class ContactsFragment extends DaggerFragment implements View.OnClickList
         super.onPause();
         requireParentFragment().getChildFragmentManager().clearFragmentResultListener(getClass().getSimpleName());
         binding.barra.setNavigationOnClickListener(null);
-        binding.layoutPrincipal.getViewTreeObserver().removeOnGlobalLayoutListener(onGlobalLayoutListener);
-
-        if (itemTouchHelper != null) {
-            itemTouchHelper.attachToRecyclerView(null);
-        }
 
         if (disposable != null) {
             if (!disposable.isDisposed()) {
@@ -128,11 +123,7 @@ public class ContactsFragment extends DaggerFragment implements View.OnClickList
         super.onDestroyView();
         binding.layoutPrincipal.removeAllViews();
         observer = null;
-        b = null;
-        itemTouchHelper = null;
-        clipboardManager = null;
         viewModel = null;
-        onGlobalLayoutListener = null;
         asyncLayoutInflater = null;
         bundle = null;
         parentResultListener = null;
@@ -143,6 +134,10 @@ public class ContactsFragment extends DaggerFragment implements View.OnClickList
     public void onViewStateRestored(@Nullable Bundle savedInstanceState) {
         super.onViewStateRestored(savedInstanceState);
         bundle = savedInstanceState == null ? new Bundle() : savedInstanceState.getBundle("bundle");
+
+        if (savedInstanceState != null) {
+            observarParent(getClass().getSimpleName(), bundle);
+        }
     }
 
     @Override
@@ -155,24 +150,16 @@ public class ContactsFragment extends DaggerFragment implements View.OnClickList
         return observer;
     }
 
-    private void observarLayout() {
-        for (int i = 0 ; i < binding.layoutPrincipal.getChildCount(); i++) {
-            View v = binding.layoutPrincipal.getChildAt(i);
-
-            if (v.getId() == binding.barra.getId()) {
-                continue;
-            }
-
-            switch (v.getId()) {
-                case R.id.layoutBarraProgresso: obterContactos(bundle);
-                    break;
-                case R.id.layoutText: inicializarText(v);
-                    break;
-                case R.id.recyclerView: inicializarRecyclerView(v);
-                    break;
-                case R.id.layoutError: inicializarRetryBtn(v);
-                    break;
-            }
+    private void observarView(View v) {
+        switch (v.getId()) {
+            case R.id.layoutBarraProgresso: obterContactos(bundle);
+                break;
+            case R.id.layoutText: inicializarText(v);
+                break;
+            case R.id.recyclerView: inicializarRecyclerView(v);
+                break;
+            case R.id.layoutError: inicializarRetryBtn(v);
+                break;
         }
     }
 
@@ -187,23 +174,15 @@ public class ContactsFragment extends DaggerFragment implements View.OnClickList
             contactsAdapter = new ContactsAdapter(new DiffUtil.ItemCallback<Contacto>() {
                 @Override
                 public boolean areItemsTheSame(@NonNull Contacto oldItem, @NonNull Contacto newItem) {
-                    return false;
+                    return newItem.equals(oldItem);
                 }
 
                 @Override
                 public boolean areContentsTheSame(@NonNull Contacto oldItem, @NonNull Contacto newItem) {
-                    return false;
+                    return (oldItem.getNrTelefone() == newItem.getNrTelefone()) & (oldItem.isContactoPrincipal() && newItem.isContactoPrincipal());
                 }
-            }, this);
+            }, this, viewModel.getService().getExecutor());
         }
-
-        adicionarListener();
-
-        if (contactsAdapter == recyclerView.getAdapter()) {
-            return;
-        }
-
-        recyclerView.setAdapter(contactsAdapter);
 
         if (linearLayoutManager == null) {
             linearLayoutManager = new LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false);
@@ -213,51 +192,70 @@ public class ContactsFragment extends DaggerFragment implements View.OnClickList
             recyclerView.setLayoutManager(linearLayoutManager);
         }
 
-        if (itemTouchHelper == null) {
-            itemTouchHelper = new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
-                @Override
-                public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
-                    return false;
-                }
+        adicionarListener();
 
-                @Override
-                public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
-                    switch (direction) {
-                        case ItemTouchHelper.LEFT: if (disposable != null) {
-                            disposable.dispose();
-                            disposable = null;
-                        }
-
-                            String nrContacto = String.valueOf(contactsAdapter.getCurrentList().get(viewHolder.getBindingAdapterPosition()).getNrTelefone());
-
-                            disposable = viewModel.getService().getBarbeariaService().removerContacto(bundle.getString("id"), nrContacto).subscribe(aBoolean -> {
-                                if (aBoolean) {
-                                    viewModel.getContactos().get(bundle.getString("id")).remove(nrContacto);
-                                }
-
-                                Toast.makeText(requireContext(), aBoolean ? "O contacto foi removido com sucesso" : "", Toast.LENGTH_LONG).show();
-                            }, throwable -> Toast.makeText(requireActivity(), "", Toast.LENGTH_LONG).show());
-                            break;
-                        case ItemTouchHelper.RIGHT: if (b == null) {
-                            b = new Bundle();
-                        }
-
-                            b.putInt("idToUpdate", contactsAdapter.getCurrentList().get(viewHolder.getBindingAdapterPosition()).getNrTelefone());
-                            b.putString("fragmentToLoad", "NewContactFragment");
-                            requireParentFragment().requireParentFragment().getChildFragmentManager().setFragmentResult(requireParentFragment().getClass().getSimpleName(), b);
-                            break;
-                    }
-                }
-            });
+        if (contactsAdapter != recyclerView.getAdapter()) {
+            recyclerView.setAdapter(contactsAdapter);
         }
 
-        List<Contacto> contactos = new ArrayList<>();
+        if (contactos != null) {
+            contactos.clear();
+        }
+
+        contactos = (contactos == null) ? new ArrayList<>() : null;
 
         for (Map.Entry<String, Map<String, Object>> entry : viewModel.getContactos().get(bundle.getString("id")).entrySet()) {
             contactos.add(new Contacto(Integer.parseInt(entry.getKey()), Boolean.parseBoolean(entry.getValue().get("contactoPrincipal").toString())));
         }
 
-        contactsAdapter.submitList(contactos);
+        atualizarContactos(contactos);
+    }
+
+    private void atualizarContactos(List<Contacto> contactos) {
+        contactosPrincipais = (contactosPrincipais == null) ? new ArrayList<>() : contactosPrincipais;
+        contactosSecundarios = (contactosSecundarios == null) ? new ArrayList<>() : contactosSecundarios;
+
+        if (!contactosPrincipais.isEmpty()) {
+            contactosPrincipais.clear();
+        }
+
+        if (!contactosSecundarios.isEmpty()) {
+            contactosSecundarios.clear();
+        }
+
+        for (Contacto contacto : contactos) {
+            if (contacto.isContactoPrincipal()) {
+                contactosPrincipais.add(contacto);
+            } else {
+                contactosSecundarios.add(contacto);
+            }
+        }
+
+        Contacto[] contactos1 = new Contacto[(contactosPrincipais.size() + contactosSecundarios.size()) + (!contactosPrincipais.isEmpty() ? 1 : 0) + (!contactosSecundarios.isEmpty() ? 1 : 0)];
+
+        int i = 0, k;
+
+        if (!contactosPrincipais.isEmpty()) {
+            contactos1[++i] = null;
+
+            for (Contacto contacto : contactosPrincipais) {
+                contactos1[i] = contacto;
+                i++;
+            }
+        }
+
+        k = contactosPrincipais.isEmpty() ? 0 : i;
+
+        if (!contactosSecundarios.isEmpty()) {
+            contactos1[++k] = null;
+
+            for (Contacto contacto : contactosSecundarios) {
+                contactos1[k] = contacto;
+                k++;
+            }
+        }
+
+        contactsAdapter.submitList(Arrays.asList(contactos1), () -> contactsAdapter.notifyDataSetChanged());
     }
 
     private void inicializarRetryBtn(View v) {
@@ -326,7 +324,7 @@ public class ContactsFragment extends DaggerFragment implements View.OnClickList
         if (!layoutParamsMap.containsKey(State.Loaded)) {
             LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
             layoutParams.topMargin = 24;
-            layoutParams.bottomMargin = 18;
+            layoutParams.bottomMargin = 24;
             layoutParamsMap.put(State.Loaded, layoutParams);
         }
 
@@ -416,15 +414,7 @@ public class ContactsFragment extends DaggerFragment implements View.OnClickList
                 binding.barra.inflateMenu(R.menu.add);
             }
 
-            binding.barra.setOnMenuItemClickListener(item -> {
-                if (b == null) {
-                    b = new Bundle();
-                }
-
-                b.putString("fragmentToLoad", "NewContactFragment");
-                requireParentFragment().requireParentFragment().getChildFragmentManager().setFragmentResult(requireParentFragment().getClass().getSimpleName(), b);
-                return true;
-            });
+            binding.barra.setOnMenuItemClickListener(item -> requireParentFragment().getChildFragmentManager().beginTransaction().replace(R.id.layoutPrincipal, new NewContactFragment()).commit() != -1);
 
             return;
         }
@@ -437,14 +427,11 @@ public class ContactsFragment extends DaggerFragment implements View.OnClickList
     @Override
     public void onClick(View view) {
         switch (view.getId()) {
-            case View.NO_ID: if (b == null) {
-                                 b = new Bundle();
-                             }
-
-                             b.putString("fragmentToLoad", "AboutFragment");
-                             requireParentFragment().requireParentFragment().getChildFragmentManager().setFragmentResult(requireParentFragment().getClass().getSimpleName(), b);
+            case View.NO_ID: requireParentFragment().getChildFragmentManager().beginTransaction().replace(R.id.layoutPrincipal, new AboutFragment()).commit();
                 break;
             case R.id.retryBtn: obterContactos(bundle);
+                break;
+            case R.id.more:
                 break;
         }
     }
@@ -477,30 +464,21 @@ public class ContactsFragment extends DaggerFragment implements View.OnClickList
 
             viewModel.getContactos().put(bundle.getString("id"), map);
 
-            List<Contacto> contactos = new ArrayList<>();
+            if (contactos != null) {
+                contactos.clear();
+            }
 
-            for (Map.Entry<String, Map<String, Object>> entry : viewModel.getContactos().get(bundle.getString("id")).entrySet()) {
+            contactos = (contactos == null) ? new ArrayList<>() : null;
+
+            for (Map.Entry<String, Map<String, Object>> entry : map.entrySet()) {
                 contactos.add(new Contacto(Integer.parseInt(entry.getKey()), Boolean.parseBoolean(entry.getValue().get("contactoPrincipal").toString())));
             }
 
-            contactsAdapter.submitList(contactos);
+            atualizarContactos(contactos);
 
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    @Override
-    public boolean onLongClick(View view) {
-        if (TextUtils.equals(binding.barra.getTitle(), "Um contacto selecionado")) {
-            return false;
-        }
-
-        binding.barra.setTitle("Um contacto selecionado");
-
-
-
-        return true;
     }
 
     @Override
@@ -512,6 +490,8 @@ public class ContactsFragment extends DaggerFragment implements View.OnClickList
         }
 
         map.put(state, view);
+
+        observarView(map.get(state));
 
         binding.layoutPrincipal.addView(view, layoutParamsMap.get(state));
     }

@@ -31,7 +31,7 @@ public class ProfileFragment extends BottomSheetDialogFragment {
     @Override
     public void onStart() {
         super.onStart();
-        observer = this::observarUser;
+        observer = users -> FragmentUtil.observarFragment(users.size() == 0 ? "NonUserFragment" : "UserFragment", getChildFragmentManager(), R.id.layoutPrincipal);
     }
 
     @Override
@@ -39,14 +39,6 @@ public class ProfileFragment extends BottomSheetDialogFragment {
         super.onDestroyView();
         observer = null;
         binding = null;
-    }
-
-    private void observarUser(List<User> users) {
-        if (users.size() == 0) {
-            FragmentUtil.observarFragment("NonUserFragment", getChildFragmentManager(), R.id.layoutPrincipal);
-        } else {
-            FragmentUtil.observarFragment("UserFragment", getChildFragmentManager(), R.id.layoutPrincipal);
-        }
     }
 
     public Observer<List<User>> getObserver() {

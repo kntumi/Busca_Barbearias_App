@@ -9,7 +9,15 @@ import io.reactivex.Maybe;
 
 public class Auth {
     public static Completable fazerLogIn(FirebaseAuth firebaseAuth, String email, String password){
-        return Completable.create(emitter -> firebaseAuth.signInWithEmailAndPassword(email, password).addOnSuccessListener(authResult -> emitter.onComplete()).addOnFailureListener(emitter::onError));
+        return Completable.create(emitter -> firebaseAuth.signInWithEmailAndPassword(email, password).addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                emitter.onComplete();
+                return;
+            }
+
+            emitter.onError(new Exception());
+
+        }).addOnFailureListener(emitter::onError));
     }
 
     public static void fazerLogOut(FirebaseAuth firebaseAuth){
@@ -35,6 +43,10 @@ public class Auth {
     public static Maybe<Boolean> reautenticar(FirebaseAuth firebaseAuth, AuthCredential authCredential) {
         return Maybe.create(emitter -> {
             if (firebaseAuth.getCurrentUser() == null) {
+                if (!emitter.isDisposed()) {
+                    emitter.onError(new NullPointerException());
+                }
+
                 return;
             }
 

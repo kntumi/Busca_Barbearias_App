@@ -20,6 +20,8 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.gson.Gson;
 
 import java.util.Map;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -47,6 +49,7 @@ public class Service {
     private FusedLocationProviderClient fusedLocationProviderClient;
     private Gson gson;
     private HttpRequestFactory requestFactory;
+    private Executor executor;
 
     @Inject
     public Service(FirebaseFirestore firestore, FirebaseAuth auth, Context context) {
@@ -187,6 +190,10 @@ public class Service {
         }
 
         return barbeariaService;
+    }
+
+    public Executor getExecutor() {
+        return executor == null ? executor = Executors.newFixedThreadPool( Runtime.getRuntime().availableProcessors() + 1) : executor;
     }
 
     public AuthService getAuthService() {

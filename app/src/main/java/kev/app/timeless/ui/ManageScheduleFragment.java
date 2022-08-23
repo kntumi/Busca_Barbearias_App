@@ -1,12 +1,15 @@
 package kev.app.timeless.ui;
 
 import android.os.Bundle;
+import android.text.Editable;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
-import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewParent;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -20,13 +23,17 @@ import androidx.fragment.app.FragmentResultListener;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.chip.Chip;
+import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 import com.google.android.material.textfield.TextInputLayout;
 import com.google.android.material.textview.MaterialTextView;
 import com.google.android.material.timepicker.MaterialTimePicker;
 import com.google.android.material.timepicker.TimeFormat;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.inject.Inject;
@@ -38,7 +45,7 @@ import kev.app.timeless.databinding.FragmentManageScheduleBinding;
 import kev.app.timeless.di.viewModelFactory.ViewModelProvidersFactory;
 import kev.app.timeless.viewmodel.MapViewModel;
 
-public class ManageScheduleFragment extends DaggerFragment implements View.OnClickListener{
+public class ManageScheduleFragment extends DaggerFragment implements View.OnClickListener {
     private FragmentManageScheduleBinding binding;
     private Map<String, String> horario;
     private Bundle bundle;
@@ -47,6 +54,9 @@ public class ManageScheduleFragment extends DaggerFragment implements View.OnCli
     private Toolbar.OnMenuItemClickListener onMenuItemClickListener;
     private FragmentManager.FragmentLifecycleCallbacks fragmentLifecycleCallbacks;
     private MaterialTimePicker materialTimePicker;
+    private TextWatcher textWatcher;
+    private List<String> list;
+    private List<Chip> chips;
     private MapViewModel viewModel;
 
     @Inject
@@ -64,6 +74,30 @@ public class ManageScheduleFragment extends DaggerFragment implements View.OnCli
         super.onViewCreated(view, savedInstanceState);
         viewModel = new ViewModelProvider(requireActivity(), providerFactory).get(MapViewModel.class);
         materialTimePicker = new MaterialTimePicker.Builder().setTimeFormat(android.text.format.DateFormat.is24HourFormat(requireContext()) ? TimeFormat.CLOCK_24H : TimeFormat.CLOCK_12H).setInputMode(MaterialTimePicker.INPUT_MODE_CLOCK).setTheme(R.style.ThemeOverlay_MaterialComponents_TimePicker).build();
+        textWatcher = new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+                String sufixo = bundle.getInt("selectedEndIconParentId") == binding.abertura.getId() ? "Abertura" : "Encerramento";
+
+                for (Chip chip : chips) {
+                    String key = "possivel".concat((chip.getId() == R.id.material_hour_tv ? "Hora" : "Minuto").concat(sufixo));
+
+                    if (!horario.containsKey(key) && !chip.isChecked() || chip.isChecked()) {
+                        horario.put(key, chip.getText().toString());
+                    }
+                }
+            }
+        };
         fragmentLifecycleCallbacks = new FragmentManager.FragmentLifecycleCallbacks() {
             @Override
             public void onFragmentResumed(@NonNull FragmentManager fm, @NonNull Fragment f) {
@@ -71,42 +105,58 @@ public class ManageScheduleFragment extends DaggerFragment implements View.OnCli
                 if (f.getClass().getSimpleName().equals(materialTimePicker.getClass().getSimpleName())) {
                     ConstraintLayout layout = (ConstraintLayout) f.getView();
 
-                    for (int i = 0 ; i < layout.getChildCount() ; i++) {
-                        View v = layout.getChildAt(i);
+                    try {
+                        for (int i = 0; i < layout.getChildCount(); i++) {
+                            View v = layout.getChildAt(i);
 
-                        if (v.getId() != R.id.header_title) {
-                            if (v.getId() == R.id.material_timepicker_mode_button && v.getVisibility() == View.VISIBLE) {
-                                v.setVisibility(View.GONE);
+                            switch (v.getId()) {
+                                case R.id.material_timepicker_cancel_button:
+                                    adicionarTextAoCancelBtn(v);
+                                    break;
+                                case R.id.header_title:
+                                    adicionarTextATituloHeader(v);
+                                    break;
+                                case R.id.material_timepicker_view:
+                                    adicionarChips(v);
+                                    break;
+                                case R.id.material_timepicker_mode_button:
+                                    v.setVisibility(v.getVisibility() == View.VISIBLE ? View.GONE : v.getVisibility());
+                                    break;
                             }
-
-                            if (v.getId() == R.id.material_timepicker_cancel_button) {
-                                MaterialButton materialButton = (MaterialButton) v;
-
-                                if (!TextUtils.equals(materialButton.getText(), "Cancelar")) {
-                                    materialButton.setText("Cancelar");
-                                }
-                            }
-
-                            continue;
                         }
-
-                        MaterialTextView materialTextView = (MaterialTextView) v;
-
-                        String txt = bundle.getInt("selectedEndIconParentId") == R.id.horaAbertura ? "Selecione a hora de abertura" : "Selecione a hora de encerramento";
-
-                        if (!TextUtils.equals(materialTextView.getText(), txt)) {
-                            materialTextView.setText(txt);
-                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
+
+                    for (Chip chip : chips) {
+                        chip.addTextChangedListener(textWatcher);
+                    }
+                }
+            }
+
+            @Override
+            public void onFragmentPaused(@NonNull FragmentManager fm, @NonNull Fragment f) {
+                super.onFragmentPaused(fm, f);
+                if (f.getClass().getSimpleName().equals(materialTimePicker.getClass().getSimpleName())) {
+                    for (Chip chip : chips) {
+                        chip.removeTextChangedListener(textWatcher);
+                    }
+
+                    chips.clear();
                 }
             }
         };
 
         horario = new HashMap<>();
+        list = new ArrayList<>();
+        chips = new ArrayList<>();
 
         if (savedInstanceState == null) {
             parentResultListener = this::observarParent;
         }
+
+        list.add("hora");
+        list.add("minuto");
     }
 
     @Override
@@ -117,9 +167,10 @@ public class ManageScheduleFragment extends DaggerFragment implements View.OnCli
         }
 
         binding.barra.setNavigationOnClickListener(this);
-        binding.horaAbertura.setEndIconOnClickListener(this);
-        binding.horaEncerramento.setEndIconOnClickListener(this);
+        binding.abertura.setEndIconOnClickListener(this);
+        binding.encerramento.setEndIconOnClickListener(this);
         materialTimePicker.addOnPositiveButtonClickListener(this);
+        materialTimePicker.addOnNegativeButtonClickListener(this);
         getChildFragmentManager().registerFragmentLifecycleCallbacks(fragmentLifecycleCallbacks, false);
     }
 
@@ -128,9 +179,10 @@ public class ManageScheduleFragment extends DaggerFragment implements View.OnCli
         super.onPause();
         requireParentFragment().getChildFragmentManager().clearFragmentResultListener(getClass().getSimpleName());
         binding.barra.setNavigationOnClickListener(null);
-        binding.horaAbertura.setEndIconOnClickListener(null);
-        binding.horaEncerramento.setEndIconOnClickListener(null);
+        binding.abertura.setEndIconOnClickListener(null);
+        binding.encerramento.setEndIconOnClickListener(null);
         materialTimePicker.removeOnPositiveButtonClickListener(this);
+        materialTimePicker.removeOnNegativeButtonClickListener(this);
         getChildFragmentManager().unregisterFragmentLifecycleCallbacks(fragmentLifecycleCallbacks);
 
         if (disposable != null) {
@@ -145,11 +197,19 @@ public class ManageScheduleFragment extends DaggerFragment implements View.OnCli
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        list.clear();
+
+        try {
+            materialTimePicker.dismiss();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         bundle.clear();
         binding.manageSchedule.removeAllViews();
-        materialTimePicker.dismiss();
         horario.clear();
         bundle = null;
+        list = null;
         materialTimePicker = null;
         fragmentLifecycleCallbacks = null;
         onMenuItemClickListener = null;
@@ -173,6 +233,11 @@ public class ManageScheduleFragment extends DaggerFragment implements View.OnCli
     @Override
     public void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
+
+        for (Map.Entry<String, String> entry : horario.entrySet()) {
+            bundle.putString(entry.getKey(), entry.getValue());
+        }
+
         outState.putBundle("bundle", new Bundle(bundle));
     }
 
@@ -192,58 +257,42 @@ public class ManageScheduleFragment extends DaggerFragment implements View.OnCli
         binding.barra.setOnMenuItemClickListener(onMenuItemClickListener);
 
         if (TextUtils.isEmpty(binding.barra.getSubtitle())) {
-            binding.barra.setSubtitle(getDiaSemana(bundle.getInt("chosenDay")));
+            binding.barra.setSubtitle(obterDiaSemana(bundle.getInt("chosenDay")));
         }
+
+        Map<String, Object> map;
 
         if (TextUtils.isEmpty(binding.barra.getTitle())) {
             binding.barra.setTitle("Editar horário");
         }
 
         try {
-            Map<String, Object> map = viewModel.getHorários().get(bundle.getString("id")).get(String.valueOf(bundle.getInt("chosenDay")));
-
-            for (String key : map.keySet()) {
-                String s = String.valueOf(map.get(key));
-
-                if (s.contains(".")) {
-                    if (s.length() != 5) {
-                        String[] chars = s.split("\\.");
-
-                        for (int i = 0 ; i < chars.length ; i++) {
-                            switch (i) {
-                                case 0: s = chars[i].length() == 1 ? "0".concat(chars[i]) : chars[i];
-                                    break;
-                                case 1: s = s.concat(":".concat(chars[i].length() == 1 ? chars[i].concat("0") : chars[i]));
-                                    break;
-                            }
-                        }
-                    }
-
-                } else {
-                    s =  s.length() == 1 ? "0".concat(s.concat(":00")) : s.concat(":00");
-                }
-
-                switch (key) {
-                    case "horaAbertura": binding.txtHoraAbertura.setText(s);
-                        break;
-                    case "horaEncerramento": binding.txtHoraEncerramento.setText(s);
-                        break;
-                }
-            }
-
+            map = viewModel.getHorários().get(bundle.getString("id")).get(String.valueOf(bundle.getInt("chosenDay")));
         } catch (Exception e) {
-            e.printStackTrace();
+            return;
         }
 
-        Menu menu = binding.barra.getMenu();
-
-        for (int i = 0 ; i < menu.size() ; i++) {
-            MenuItem menuItem = menu.getItem(i);
-            menuItem.setVisible(bundle.containsKey("isClosed") && bundle.getBoolean("isClosed") ? menuItem.getItemId() == R.id.encerrar || menuItem.getItemId() == R.id.inserir : menuItem.getItemId() == R.id.nao_encerrar || menuItem.getItemId() == R.id.inserir);
-        }
+        binding.txtEncerramento.setText(obterTime(binding.encerramento.getId(), map));
+        binding.txtAbertura.setText(obterTime(binding.abertura.getId(), map));
     }
 
-    private String getDiaSemana(int diaSemana) {
+    private String obterTime(int id, Map<String, ?> map) {
+        String keyToLookAt = (id == binding.abertura.getId()) ? "Abertura" : "Encerramento", time = "";
+
+        for (String s : list) {
+            String key = s.concat(keyToLookAt);
+
+            if (!map.containsKey(key)) {
+                continue;
+            }
+
+            time = TextUtils.equals(s, "hora") ? time.concat(String.valueOf(map.get(key))) : time.concat(":"+map.get(key));
+        }
+
+        return TextUtils.isEmpty(time) ? "Encerrado" : time;
+    }
+
+    private String obterDiaSemana(int diaSemana) {
         switch (diaSemana) {
             case Calendar.SUNDAY: return "Domingo";
             case Calendar.MONDAY: return "Segunda-Feira";
@@ -256,83 +305,62 @@ public class ManageScheduleFragment extends DaggerFragment implements View.OnCli
         }
     }
 
-    private boolean observarOnMenuItemClick(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.nao_encerrar: encerrar();
-                break;
-            case R.id.encerrar: reabrir();
-                break;
-            case R.id.inserir: if (disposable != null) {
-                                   disposable.dispose();
-                               }
+    private void adicionarTextATituloHeader(View v) {
+        MaterialTextView materialTextView = (MaterialTextView) v;
 
-                               if (TextUtils.isEmpty(horario.get("horaAbertura")) || TextUtils.isEmpty(horario.get("horaEncerramento"))) {
-                                   return false;
-                               }
+        String txt = bundle.getInt("selectedEndIconParentId") == binding.abertura.getId() ? "Selecione a hora de abertura" : "Selecione a hora de encerramento";
 
-                               disposable = viewModel.getService().getBarbeariaService().inserirServiço(bundle.getString("id"), horario).subscribe(aBoolean -> Toast.makeText(requireActivity(), aBoolean ? "" : "", Toast.LENGTH_LONG).show(), throwable -> Toast.makeText(requireActivity(), "", Toast.LENGTH_LONG).show());
-                break;
+        if (!TextUtils.equals(materialTextView.getText(), txt)) {
+            materialTextView.setText(txt);
         }
+    }
+
+    private void adicionarTextAoCancelBtn(View v) {
+        MaterialButton materialButton = (MaterialButton) v;
+
+        String txt = "Cancelar";
+
+        if (!TextUtils.equals(materialButton.getText(), txt)) {
+            materialButton.setText(txt);
+        }
+    }
+
+    private void adicionarChips(View v) {
+        ConstraintLayout layout1 = (ConstraintLayout) v;
+
+        for (int j = 0 ; j < layout1.getChildCount() ; j++) {
+            View view1 = layout1.getChildAt(j);
+
+            if (view1.getId() != R.id.material_clock_display) {
+                continue;
+            }
+
+            LinearLayout linearLayout = (LinearLayout) view1;
+
+            Class<Chip> chipClass = Chip.class;
+
+            for (int k = 0 ; k < linearLayout.getChildCount() ; k++) {
+                View view2 = linearLayout.getChildAt(k);
+
+                if (chipClass != view2.getClass()) {
+                    continue;
+                }
+
+                chips.add((Chip) view2);
+            }
+
+            break;
+        }
+    }
+
+    private boolean observarOnMenuItemClick(MenuItem item) {
+        if (disposable != null) {
+            disposable.dispose();
+        }
+
+        disposable = viewModel.getService().getBarbeariaService().inserirServiço(bundle.getString("id"), horario).subscribe(aBoolean -> Toast.makeText(requireActivity(), "", Toast.LENGTH_LONG).show(), throwable -> Toast.makeText(requireActivity(), "", Toast.LENGTH_LONG).show());
 
         return true;
-    }
-
-    private void reabrir() {
-        for (int i = 0 ; i < binding.manageSchedule.getChildCount() ; i++) {
-            View v = binding.manageSchedule.getChildAt(i);
-
-            if (v.getId() == R.id.barra) {
-                continue;
-            }
-
-            if (v.getId() == R.id.horaAbertura || v.getId() == R.id.horaEncerramento) {
-                TextInputLayout textInputLayout = (TextInputLayout) v;
-
-                for (int j = 0 ; j < textInputLayout.getChildCount() ; j++) {
-                    textInputLayout.getChildAt(j).setEnabled(true);
-                }
-            }
-
-            v.setEnabled(true);
-        }
-
-        Menu menu = binding.barra.getMenu();
-
-        for (int i = 0 ; i < menu.size() ; i++) {
-            MenuItem menuItem = menu.getItem(i);
-            menuItem.setVisible(menuItem.getItemId() == R.id.nao_encerrar || menuItem.getItemId() == R.id.inserir);
-        }
-
-        bundle.putBoolean("isClosed", false);
-    }
-
-    private void encerrar() {
-        for (int i = 0 ; i < binding.manageSchedule.getChildCount() ; i++) {
-            View v = binding.manageSchedule.getChildAt(i);
-
-            if (v.getId() == R.id.barra) {
-                continue;
-            }
-
-            if (v.getId() == R.id.horaAbertura || v.getId() == R.id.horaEncerramento) {
-                TextInputLayout textInputLayout = (TextInputLayout) v;
-
-                for (int j = 0 ; j < textInputLayout.getChildCount() ; j++) {
-                    textInputLayout.getChildAt(j).setEnabled(false);
-                }
-            }
-
-            v.setEnabled(false);
-        }
-
-        Menu menu = binding.barra.getMenu();
-
-        for (int i = 0 ; i < menu.size() ; i++) {
-            MenuItem menuItem = menu.getItem(i);
-            menuItem.setVisible(menuItem.getItemId() == R.id.encerrar || menuItem.getItemId() == R.id.inserir);
-        }
-
-        bundle.putBoolean("isClosed", true);
     }
 
     @Override
@@ -344,77 +372,68 @@ public class ManageScheduleFragment extends DaggerFragment implements View.OnCli
                 break;
             case R.id.material_timepicker_ok_button: mudarHoras();
                 break;
+            case R.id.material_timepicker_cancel_button: removerHoras();
+                break;
         }
     }
 
     private void verQualEndIcon(View endIconView) {
+        ViewParent viewParent = endIconView.getParent();
+
+        Class<? extends LinearLayout> classe = TextInputLayout.class;
+
+        while (viewParent.getClass() != classe) {
+            viewParent = viewParent.getParent();
+        }
+
         for (int i = 0 ; i < binding.manageSchedule.getChildCount() ; i++) {
             View v = binding.manageSchedule.getChildAt(i);
 
-            if (v.getId() == R.id.horaAbertura || v.getId() == R.id.horaEncerramento) {
-                TextInputLayout textInputLayout = (TextInputLayout) v;
-
-                for (int j = 0 ; j < textInputLayout.getChildCount() ; j++) {
-                    ViewGroup viewGroup = (ViewGroup) textInputLayout.getChildAt(j);
-
-                    for (int k = 0 ; k < viewGroup.getChildCount() ; k++) {
-                        View vChild = viewGroup.getChildAt(k);
-
-                        if (vChild instanceof ViewGroup) {
-                            ViewGroup viewGroup1 = (ViewGroup) vChild;
-
-                            for (int l = 0 ; l < viewGroup1.getChildCount() ; l++) {
-                                View vChild1 = viewGroup1.getChildAt(l);
-
-                                if (vChild1 instanceof ViewGroup) {
-                                    ViewGroup viewGroup2 = (ViewGroup) vChild1;
-
-                                    for (int m = 0 ; m < viewGroup2.getChildCount() ; m++) {
-                                        View vChild2 = viewGroup2.getChildAt(m);
-
-                                        if (!endIconView.equals(vChild2)) {
-                                            continue;
-                                        }
-
-                                        bundle.putInt("selectedEndIconParentId", textInputLayout.getId());
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+            if (!viewParent.equals(v)) {
+                continue;
             }
+
+            bundle.putInt("selectedEndIconParentId", v.getId());
+            break;
         }
 
         materialTimePicker.show(getChildFragmentManager(), null);
     }
 
-    private void mudarHoras() {
-        horario.put(bundle.getInt("selectedEndIconParentId") == binding.horaAbertura.getId() ? "horaAbertura" : "horaEncerramento", String.valueOf(materialTimePicker.getHour()).concat(":".concat(String.valueOf(materialTimePicker.getMinute()))));
+    private void removerHoras() {
+        String prefixo = "possivel", sufixo = bundle.getInt("selectedEndIconParentId") == binding.abertura.getId() ? "Abertura" : "Encerramento";
 
-        for (String key : horario.keySet()) {
-            String s = horario.get(key);
+        for (String s : list) {
+            String key = prefixo.concat(s.substring(0, 1).toUpperCase().concat(s.substring(1)).concat(sufixo));
 
-            if (s.length() != 5) {
-                String[] chars = s.split("\\.");
-
-                for (int i = 0 ; i < chars.length ; i++) {
-                    switch (i) {
-                        case 0: s = chars[i].length() == 1 ? "0".concat(chars[i]) : chars[i];
-                            break;
-                        case 1: s = s.concat(":".concat(chars[i].length() == 1 ? chars[i].concat("0") : chars[i]));
-                            break;
-                    }
-                }
-            }
-
-            if (!TextUtils.equals(horario.get(key), s)) {
-                horario.put(key, s);
+            if (horario.containsKey(key)) {
+                horario.remove(key);
             }
         }
 
-        System.out.println(horario);
+        if (bundle.containsKey("selectedEndIconParentId")) {
+            bundle.remove("selectedEndIconParentId");
+        }
+    }
 
-        bundle.remove("selectedEndIconParentId");
+    private void mudarHoras() {
+        String prefixo = "possivel", sufixo = bundle.getInt("selectedEndIconParentId") == binding.abertura.getId() ? "Abertura" : "Encerramento", time = "";
+
+        for (String s : list) {
+            String key = prefixo.concat(s.substring(0, 1).toUpperCase().concat(s.substring(1)).concat(sufixo));
+
+            if (horario.containsKey(key)) {
+                time = TextUtils.equals(s, "hora") ? time.concat(String.valueOf(horario.get(key))) : time.concat(":"+horario.get(key));
+                horario.put(s.concat(sufixo), horario.get(key));
+                horario.remove(key);
+            }
+        }
+
+        MaterialAutoCompleteTextView materialAutoCompleteTextView = TextUtils.equals(sufixo, "Abertura") ? binding.txtAbertura : binding.txtEncerramento;
+        materialAutoCompleteTextView.setText(time);
+
+        if (bundle.containsKey("selectedEndIconParentId")) {
+            bundle.remove("selectedEndIconParentId");
+        }
     }
 }

@@ -450,7 +450,8 @@ public class Barbearia {
     }
 
     public static Maybe<Boolean> obterContacto(String id, String nrContacto, FirebaseFirestore firestore) {
-        return Maybe.create(emitter -> firestore.collection("Barbearia")
+        return Maybe.create(emitter -> firestore
+                .collection("Barbearia")
                 .document(id)
                 .collection("contactos")
                 .document(nrContacto)

@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <layout xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:android="http://schemas.android.com/apk/res/android">
 
@@ -20,16 +19,13 @@
             app:layout_constraintTop_toTopOf="parent"
             app:menu="@menu/inserir"
             app:navigationIcon="@drawable/voltar_icn"
-            app:titleTextAppearance="@style/textAppearanceBarra" />
+            app:titleTextAppearance="?textAppearanceListItem" />
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/numero"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="24dp"
-            android:layout_marginTop="24dp"
-            android:layout_marginEnd="24dp"
-            android:layout_marginBottom="36dp"
+            android:layout_margin="24dp"
             android:hint="Número de Telefone"
             app:counterMaxLength="9"
             app:counterEnabled="true"
@@ -37,6 +33,7 @@
             app:boxBackgroundColor="@null"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.5"
+            android:textColorHint="@color/colorPrimary"
             app:layout_constraintHorizontal_chainStyle="spread_inside"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/barra">
@@ -50,6 +47,37 @@
                 android:paddingEnd="0dp" />
 
         </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.chip.ChipGroup
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="24dp"
+            android:id="@+id/chipGroup"
+            app:selectionRequired="true"
+            app:singleSelection="true"
+            android:layout_marginBottom="36dp">
+
+            <com.google.android.material.chip.Chip
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:chipBackgroundColor="@color/bg_chip"
+                android:id="@+id/principal"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:elevation="0dp"
+                android:textColor="@color/text_color"
+                android:text="Principal"/>
+
+            <com.google.android.material.chip.Chip
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/secundario"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                app:chipBackgroundColor="@color/bg_chip"
+                android:elevation="0dp"
+                android:textColor="@color/text_color"
+                android:text="Secundário"/>
+
+        </com.google.android.material.chip.ChipGroup>
 
     </LinearLayout>
 

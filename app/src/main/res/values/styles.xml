@@ -5,7 +5,7 @@
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
         <item name="android:statusBarColor">@color/corStatusBar</item>
-        <item name="android:colorBackground">@color/corMain</item>
+        <item name="android:backgroundDimAmount">0.0</item>
     </style>
 
     <style name="switchTheme" parent="TextAppearance.AppCompat.Widget.Switch">

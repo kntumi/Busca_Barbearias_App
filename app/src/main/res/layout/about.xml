@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:app="http://schemas.android.com/apk/res-auto"
+<layout xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:android="http://schemas.android.com/apk/res/android">
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -27,15 +28,14 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="@+id/nome" />
 
-        <TextView
+        <com.google.android.material.textview.MaterialTextView
             android:id="@+id/nome"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="12dp"
             android:layout_marginTop="24dp"
-            android:hint="Nome"
             android:paddingHorizontal="4dp"
-            android:textColorHint="@color/colorPrimary"
+            android:textColor="@color/colorPrimary"
             android:textSize="12sp"
             app:layout_constraintStart_toEndOf="@+id/info"
             app:layout_constraintTop_toTopOf="parent" />
@@ -50,7 +50,7 @@
             app:layout_constraintStart_toStartOf="@id/nome"
             app:layout_constraintTop_toBottomOf="@+id/nome" />
 
-        <TextView
+        <com.google.android.material.textview.MaterialTextView
             android:id="@+id/txtContacto"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -60,7 +60,6 @@
             android:drawableStart="@drawable/call"
             android:drawableEnd="@drawable/go"
             android:paddingStart="24dp"
-            android:text="Contactos"
             android:paddingTop="16dp"
             android:layout_marginTop="24dp"
             android:paddingEnd="24dp"
@@ -69,43 +68,24 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/txtNome" />
 
-        <TextView
-            android:id="@+id/txtLoc"
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/txtServicos"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:drawableEnd="@drawable/go"
             android:background="?android:selectableItemBackground"
+            android:drawableStart="@drawable/miscellaneous_services"
+            android:drawableEnd="@drawable/go"
             android:drawablePadding="16dp"
-            android:drawableStart="@drawable/location"
             android:paddingStart="24dp"
             android:paddingTop="16dp"
             android:paddingEnd="24dp"
             android:paddingBottom="16dp"
-            android:text="Localização"
             android:textColor="?android:textColorPrimary"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/txtContacto" />
 
-        <TextView
-            android:id="@+id/txtServicos"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="?android:selectableItemBackground"
-            android:drawablePadding="16dp"
-            android:paddingStart="24dp"
-            android:drawableStart="@drawable/miscellaneous_services"
-            android:drawableEnd="@drawable/go"
-            android:paddingTop="16dp"
-            android:paddingEnd="24dp"
-            android:paddingBottom="16dp"
-            android:text="Serviços"
-            android:textColor="?android:textColorPrimary"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/txtLoc" />
-
-        <TextView
+        <com.google.android.material.textview.MaterialTextView
             android:id="@+id/txtHorario"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -117,13 +97,11 @@
             android:paddingEnd="24dp"
             android:drawableStart="@drawable/schedule"
             android:paddingBottom="16dp"
-            android:text="Horário"
             android:textColor="?android:textColorPrimary"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/txtServicos" />
-
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>

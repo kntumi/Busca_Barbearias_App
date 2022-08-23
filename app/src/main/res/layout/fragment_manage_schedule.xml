@@ -3,45 +3,45 @@
     xmlns:android="http://schemas.android.com/apk/res/android">
 
     <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/manage_schedule"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/manage_schedule">
+        android:layout_height="wrap_content">
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/barra"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="12dp"
             android:layout_marginTop="18dp"
-            app:menu="@menu/opcoes_schedule"
-            app:subtitleTextAppearance="@style/TextAppearance.AppCompat.Caption"
+            android:layout_marginEnd="12dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
+            app:menu="@menu/inserir"
             app:navigationIcon="@drawable/fechar_icn"
+            app:subtitleTextAppearance="@style/TextAppearance.AppCompat.Caption"
             app:titleTextAppearance="?textAppearanceListItem" />
 
         <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/horaAbertura"
-            android:layout_width="match_parent"
+            android:id="@+id/abertura"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
             android:layout_marginEnd="12dp"
-            android:layout_marginStart="24dp"
+            android:layout_marginStart="28dp"
             android:hint="Hora de Abertura"
             android:textColorHint="@color/colorPrimary"
+            app:boxBackgroundMode="none"
             app:endIconDrawable="@drawable/edit"
             app:endIconMode="custom"
             app:helperText="A hora mínima de abertura é 07:00"
-            app:boxBackgroundMode="none"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/barra">
+            app:layout_constraintStart_toEndOf="@+id/view1"
+            app:layout_constraintTop_toBottomOf="@+id/barra">
 
             <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                android:id="@+id/txtAbertura"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:id="@+id/txtHoraAbertura"
                 android:inputType="none"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
@@ -50,44 +50,64 @@
         </com.google.android.material.textfield.TextInputLayout>
 
         <View
-            android:id="@+id/line"
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginTop="24dp"
-            android:alpha="0.12"
-            android:background="@drawable/line"
-            app:layout_constraintEnd_toEndOf="parent"
+            android:id="@+id/view2"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginStart="18dp"
+            android:background="@drawable/lock"
+            app:layout_constraintBottom_toBottomOf="@+id/encerramento"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/horaAbertura" />
+            app:layout_constraintTop_toTopOf="@+id/encerramento" />
+
+        <View
+            android:id="@+id/view1"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginStart="18dp"
+            android:background="@drawable/lock_open"
+            app:layout_constraintBottom_toBottomOf="@+id/abertura"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="@+id/abertura" />
+
+        <View
+            android:id="@+id/view"
+            android:layout_width="0dp"
+            android:layout_height="0.5dp"
+            android:layout_marginEnd="12dp"
+            android:background="@drawable/line"
+            android:layout_marginTop="24dp"
+            android:alpha="0.16"
+            app:layout_constraintEnd_toEndOf="@+id/abertura"
+            app:layout_constraintStart_toStartOf="@+id/abertura"
+            app:layout_constraintTop_toBottomOf="@+id/abertura" />
 
         <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/horaEncerramento"
-            android:layout_width="match_parent"
+            android:id="@+id/encerramento"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="24dp"
             android:layout_marginTop="24dp"
             android:layout_marginEnd="12dp"
-            android:layout_marginBottom="42dp"
+            android:layout_marginStart="28dp"
+            android:layout_marginBottom="24dp"
             android:hint="Hora de Encerramento"
+            app:helperText="A hora máxima de encerramento é 22:00"
             android:textColorHint="@color/colorPrimary"
             app:boxBackgroundMode="none"
             app:endIconDrawable="@drawable/edit"
             app:endIconMode="custom"
-            app:helperText="A hora máxima de encerramento é 22:00"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/line">
+            app:layout_constraintStart_toEndOf="@+id/view2"
+            app:layout_constraintTop_toBottomOf="@+id/view">
 
             <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                android:id="@+id/txtHoraEncerramento"
+                android:id="@+id/txtEncerramento"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="none"
-                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/horaEncerramento" />
+                app:layout_constraintTop_toBottomOf="@+id/horaAbertura" />
 
         </com.google.android.material.textfield.TextInputLayout>
 

@@ -14,7 +14,7 @@ import kev.app.timeless.R;
 import kev.app.timeless.databinding.LayoutNonUserBinding;
 import kev.app.timeless.util.FragmentUtil;
 
-public class NonUserFragment extends Fragment{
+public class NonUserFragment extends Fragment {
     private LayoutNonUserBinding binding;
 
     @Nullable

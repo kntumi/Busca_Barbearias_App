@@ -29,7 +29,6 @@ import kev.app.timeless.api.Service;
 import kev.app.timeless.databinding.ActivityMapsBinding;
 import kev.app.timeless.di.viewModelFactory.ViewModelProvidersFactory;
 import kev.app.timeless.model.User;
-import kev.app.timeless.util.FragmentUtil;
 
 public class MapsActivity extends DaggerAppCompatActivity {
     @Inject
@@ -59,7 +58,7 @@ public class MapsActivity extends DaggerAppCompatActivity {
     protected void onPostCreate(@Nullable Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
         if (getSupportFragmentManager().getBackStackEntryCount() == 0) {
-            FragmentUtil.observarFragment("MapsFragment", getSupportFragmentManager(), binding.layoutPrincipal.getId());
+            getSupportFragmentManager().beginTransaction().replace(binding.layoutPrincipal.getId(), new MapsFragment()).commit();
         }
     }
 

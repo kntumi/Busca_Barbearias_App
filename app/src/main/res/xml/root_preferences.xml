@@ -1,0 +1,42 @@
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory app:title="@string/account_header">
+
+        <Preference
+            app:key="signature"
+            app:title="@string/email_title"
+            app:icon="@drawable/mail"
+            app:summary="ntumi73@gmail.com" />
+
+        <Preference
+            app:key="signature"
+            app:title="@string/pass_title"
+            app:icon="@drawable/lock"
+            app:summary="Alterada em 20 de Outubro de 2021, as 18:37" />
+
+        <Preference
+            app:key="attachment"
+            app:title="Apagar esta conta"
+            app:icon="@drawable/apagar_conta"/>
+
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="Sessão">
+
+        <Preference
+            app:key="nome"
+            app:title="@string/about_title"
+            android:fragment="kev.app.timeless.ui.InsertNameFragment"
+            app:icon="@drawable/info"
+            android:summary="Iniciou a sessao pelas 19:30 de 24 de Agosto de 2022"
+            app:useSimpleSummaryProvider="true" />
+
+        <Preference
+            app:key="sync"
+            app:icon="@drawable/terminar_sessao"
+            app:title="Terminar a sessão actual" />
+
+    </PreferenceCategory>
+
+</PreferenceScreen>

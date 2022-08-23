@@ -5,16 +5,15 @@ import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
 import android.widget.LinearLayout;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.asynclayoutinflater.view.AsyncLayoutInflater;
 import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.core.text.PrecomputedTextCompat;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentResultListener;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -36,7 +35,6 @@ import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 import kev.app.timeless.R;
-import kev.app.timeless.api.Service;
 import kev.app.timeless.databinding.FragmentAboutBinding;
 import kev.app.timeless.di.viewModelFactory.ViewModelProvidersFactory;
 import kev.app.timeless.model.User;
@@ -45,11 +43,9 @@ import kev.app.timeless.viewmodel.MapViewModel;
 
 public class AboutFragment extends DaggerFragment implements View.OnClickListener, AsyncLayoutInflater.OnInflateFinishedListener {
     private FragmentAboutBinding binding;
-    private FragmentResultListener parentResultListener;
     private Observer<List<User>> observer;
     private MapViewModel viewModel;
     private Disposable disposable;
-    private ViewTreeObserver.OnGlobalLayoutListener onGlobalLayoutListener;
     private Bundle bundle;
     private Map<State, ViewGroup.LayoutParams> layoutParamsMap;
     private Map<State, View> map;
@@ -60,8 +56,13 @@ public class AboutFragment extends DaggerFragment implements View.OnClickListene
     @Inject
     ViewModelProvidersFactory providerFactory;
 
-    @Inject
-    Service service;
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        if (savedInstanceState == null) {
+            bundle = getArguments();
+        }
+    }
 
     @Nullable
     @Override
@@ -73,57 +74,47 @@ public class AboutFragment extends DaggerFragment implements View.OnClickListene
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        observer = users -> loggedInUserId = users.size() == 0 ? null : users.get(0).getId();
+        observer = users -> loggedInUserId = users.size() == 0 ? null : users.get(users.size() - 1).getId();
         viewModel = new ViewModelProvider(requireActivity(), providerFactory).get(MapViewModel.class);
-        onGlobalLayoutListener = this::observarLayout;
         asyncLayoutInflater = new AsyncLayoutInflater(requireContext());
         layoutParamsMap = new HashMap<>();
         map = new HashMap<>();
-
-        if (savedInstanceState == null) {
-            parentResultListener = this::observarParent;
-        }
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        binding.layoutPrincipal.getViewTreeObserver().addOnGlobalLayoutListener(onGlobalLayoutListener);
-
-        if (parentResultListener != null) {
-            requireParentFragment().getChildFragmentManager().setFragmentResultListener(getClass().getSimpleName(), this, parentResultListener);
-        }
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        binding.layoutPrincipal.getViewTreeObserver().removeOnGlobalLayoutListener(onGlobalLayoutListener);
-
-        requireParentFragment().getChildFragmentManager().clearFragmentResultListener(getClass().getSimpleName());
-
         if (disposable != null) {
             if (!disposable.isDisposed()) {
                 disposable.dispose();
             }
-
-            disposable = null;
         }
 
         if (listenerRegistration != null) {
             listenerRegistration.remove();
         }
 
-        for (State state : map.keySet()) {
-            switch (state) {
-                case Loading:
-                    break;
-                case Loaded:
-                    break;
-                case Empty:
-                    break;
-                case Error:
-                    break;
+        if (map.containsKey(State.Error)) {
+            ConstraintLayout layout = (ConstraintLayout) map.get(State.Error);
+
+            MaterialButton btn = (MaterialButton) layout.findViewById(R.id.retryBtn);
+
+            if (btn.hasOnClickListeners()) {
+                btn.setOnClickListener(null);
+            }
+        }
+
+        if (map.containsKey(State.Loaded)) {
+            ConstraintLayout layout = (ConstraintLayout) map.get(State.Loaded);
+
+            for (int i = 0 ; i < layout.getChildCount() ; i++) {
+                View child = layout.getChildAt(i);
+
+                if (!child.hasOnClickListeners()) {
+                    continue;
+                }
+
+                child.setOnClickListener(null);
             }
         }
     }
@@ -134,11 +125,10 @@ public class AboutFragment extends DaggerFragment implements View.OnClickListene
         map.clear();
         layoutParamsMap.clear();
         loggedInUserId = null;
+        disposable = null;
         asyncLayoutInflater = null;
-        onGlobalLayoutListener = null;
         bundle = null;
         observer = null;
-        parentResultListener = null;
         viewModel = null;
         binding = null;
     }
@@ -146,11 +136,7 @@ public class AboutFragment extends DaggerFragment implements View.OnClickListene
     @Override
     public void onViewStateRestored(@Nullable Bundle savedInstanceState) {
         super.onViewStateRestored(savedInstanceState);
-        bundle = savedInstanceState == null ? new Bundle() : savedInstanceState.getBundle("bundle");
-
-        if (savedInstanceState != null) {
-            observarParent(null, bundle);
-        }
+        observarBundle(savedInstanceState == null ? bundle : savedInstanceState.getBundle("bundle"));
     }
 
     @Override
@@ -159,7 +145,7 @@ public class AboutFragment extends DaggerFragment implements View.OnClickListene
         outState.putBundle("bundle", new Bundle(bundle));
     }
 
-    private void observarParent(String requestKey, Bundle result) {
+    private void observarBundle(Bundle result) {
         bundle = bundle == null || bundle.size() == 0 ? result : bundle;
 
         if (viewModel.getEstabelecimentos().containsKey(bundle.getString("id"))) {
@@ -167,51 +153,50 @@ public class AboutFragment extends DaggerFragment implements View.OnClickListene
         } else {
             onLoading();
         }
+
+        adicionarListener();
     }
 
-    private void observarLayout() {
-        for (int i = 0; i < binding.layoutPrincipal.getChildCount(); i++) {
-            View v = binding.layoutPrincipal.getChildAt(i);
-
-            if (v == binding.view) {
-                continue;
-            }
-
-            switch (v.getId()) {
-                case R.id.layoutBarraProgresso: obterEstabelecimento(bundle);
-                    break;
-                case R.id.layoutError: inicializarRetryBtn(v);
-                    break;
-                case R.id.about:
-                case R.id.not_about: inicializarNome(v);
-                    break;
-            }
-        }
-    }
-
-    private void inicializarNome(View v) {
-        ConstraintLayout layout = (ConstraintLayout) v;
+    private void inicializarPerfil(View view) {
+        ConstraintLayout layout = (ConstraintLayout) view;
 
         Map<String, Object> map = viewModel.getEstabelecimentos().get(bundle.getString("id"));
-
-        String nome = String.valueOf(map.get("nome"));
 
         for (int i = 0 ; i < layout.getChildCount() ; i++) {
             View child = layout.getChildAt(i);
 
-            if (child.getId() == R.id.txtNome) {
-                MaterialTextView txtNome = (MaterialTextView) child;
+            if (!child.hasOnClickListeners()) {
+                child.setOnClickListener(this);
+            }
 
-                if (!TextUtils.equals(nome, txtNome.getText())) {
-                    txtNome.setText(TextUtils.isEmpty(nome) ? "Sem nome" : nome);
+            if (child.getId() == R.id.edit || child.getId() == R.id.info) {
+                continue;
+            }
+
+            MaterialTextView materialTextView = (MaterialTextView) child;
+
+            String s = null;
+
+            switch (child.getId()) {
+                case R.id.txtNome: s = String.valueOf(map.get("nome"));
+                    break;
+                case R.id.txtContacto: s = "Contactos";
+                    break;
+                case R.id.txtServicos: s = "Serviços";
+                    break;
+                case R.id.txtHorario: s = "Horário";
+                    break;
+                case R.id.nome: s = "Nome";
+                    break;
+            }
+
+            if (!TextUtils.equals(s, materialTextView.getText())) {
+                try {
+                    materialTextView.setTextFuture(PrecomputedTextCompat.getTextFuture(TextUtils.isEmpty(s) ? "Sem nome" : s, materialTextView.getTextMetricsParamsCompat(), viewModel.getService().getExecutor()));
+                } catch (Exception e) {
+                    materialTextView.setText(TextUtils.isEmpty(s) ? "Sem nome" : s);
                 }
             }
-
-            if (child.hasOnClickListeners()) {
-                child.setOnClickListener(null);
-            }
-
-            child.setOnClickListener(this);
         }
     }
 
@@ -226,7 +211,7 @@ public class AboutFragment extends DaggerFragment implements View.OnClickListene
     }
 
     private void adicionarListener() {
-        listenerRegistration = service.getFirestore().collection("Barbearia").document(bundle.getString("id")).addSnapshotListener(this::observarDocument);
+        listenerRegistration = viewModel.getService().getFirestore().collection("Barbearia").document(bundle.getString("id")).addSnapshotListener(this::observarDocument);
     }
 
     private void observarDocument(DocumentSnapshot documentSnapshot, FirebaseFirestoreException exception) {
@@ -250,7 +235,7 @@ public class AboutFragment extends DaggerFragment implements View.OnClickListene
     }
 
     private void obterEstabelecimento(Bundle bundle) {
-        disposable = service.getBarbeariaService().obterEstabelecimento(bundle.getString("id"))
+        disposable = viewModel.getService().getBarbeariaService().obterEstabelecimento(bundle.getString("id"))
                 .timeout(5, TimeUnit.SECONDS)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
@@ -323,7 +308,7 @@ public class AboutFragment extends DaggerFragment implements View.OnClickListene
         }
 
         if (!map.containsKey(State.Loaded)) {
-            asyncLayoutInflater.inflate(TextUtils.isEmpty(loggedInUserId) ? R.layout.not_about : R.layout.about, null, this);
+            asyncLayoutInflater.inflate(R.layout.about, null, this);
             return;
         }
 
@@ -357,18 +342,7 @@ public class AboutFragment extends DaggerFragment implements View.OnClickListene
 
     @Override
     public void onClick(View view) {
-        if (view.getId() == R.id.txtLoc || view.getId()  == R.id.retryBtn) {
-            switch (view.getId()) {
-                case R.id.txtLoc:
-                    break;
-                case R.id.retryBtn:
-                    break;
-            }
-
-            return;
-        }
-
-        String key = null;
+        String key;
 
         switch (view.getId()) {
             case R.id.edit: key = "InsertNameFragment";
@@ -379,7 +353,10 @@ public class AboutFragment extends DaggerFragment implements View.OnClickListene
                 break;
             case R.id.txtServicos: key = "ServicesFragment";
                 break;
-            default: throw new IllegalStateException("Unexpected value: " + view.getId());
+            case R.id.retryBtn: onLoading();
+                return;
+            default:
+                return;
         }
 
         requireParentFragment().getChildFragmentManager().beginTransaction().replace(R.id.layoutPrincipal, obterFragment(key)).commit();
@@ -391,6 +368,17 @@ public class AboutFragment extends DaggerFragment implements View.OnClickListene
 
         if (binding.layoutPrincipal.getChildCount() > 1) {
             removerViewsDoLayout();
+        }
+
+        switch (state) {
+            case Error: inicializarRetryBtn(view);
+                break;
+            case Empty:
+                break;
+            case Loaded: inicializarPerfil(view);
+                break;
+            case Loading: obterEstabelecimento(bundle);
+                break;
         }
 
         map.put(state, view);
@@ -425,8 +413,7 @@ public class AboutFragment extends DaggerFragment implements View.OnClickListene
                 break;
             case R.layout.text: state = State.Empty;
                 break;
-            case R.layout.about:
-            case R.layout.not_about: state = State.Loaded;
+            case R.layout.about: state = State.Loaded;
                 break;
             default: throw new IllegalStateException("Unexpected value: " + resid);
         }

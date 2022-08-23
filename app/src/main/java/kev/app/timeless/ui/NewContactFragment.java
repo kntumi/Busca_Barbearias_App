@@ -17,6 +17,8 @@ import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.FragmentResultListener;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.google.android.material.chip.ChipGroup;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -40,6 +42,7 @@ public class NewContactFragment extends DaggerFragment implements View.OnClickLi
     private Toolbar.OnMenuItemClickListener onMenuItemClickListener;
     private Map<String, Object> map;
     private TextWatcher textWatcher;
+    private ChipGroup.OnCheckedChangeListener onCheckedChangeListener;
     private MapViewModel viewModel;
 
     @Inject
@@ -58,7 +61,9 @@ public class NewContactFragment extends DaggerFragment implements View.OnClickLi
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        parentResultListener = this::observarParent;
+        viewModel = new ViewModelProvider(requireActivity(), providerFactory).get(MapViewModel.class);
+        map = new HashMap<>();
+        onCheckedChangeListener = (group, checkedId) -> map.put("contactoPrincipal", checkedId == R.id.principal);
         textWatcher = new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
@@ -79,7 +84,7 @@ public class NewContactFragment extends DaggerFragment implements View.OnClickLi
                 }
 
                 if (onMenuItemClickListener == null) {
-                    onMenuItemClickListener = NewContactFragment.this::observarOnMenuItemClick;
+                    onMenuItemClickListener = item -> observarOnMenuItemClick(item);
                 }
 
                 if (disposables == null) {
@@ -106,14 +111,22 @@ public class NewContactFragment extends DaggerFragment implements View.OnClickLi
                 }).subscribe(aBoolean -> binding.numero.setError(aBoolean ? "Um contacto seu com este número foi encontrado" : null), throwable -> Toast.makeText(requireActivity(), "", Toast.LENGTH_LONG).show()));
             }
         };
+
+        if (savedInstanceState == null) {
+            parentResultListener = this::observarParent;
+        }
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        requireParentFragment().getChildFragmentManager().setFragmentResultListener(getClass().getSimpleName(), this, parentResultListener);
+        if (parentResultListener != null) {
+            requireParentFragment().getChildFragmentManager().setFragmentResultListener(getClass().getSimpleName(), this, parentResultListener);
+        }
+
         binding.nrTelefone.addTextChangedListener(textWatcher);
         binding.barra.setNavigationOnClickListener(this);
+        binding.chipGroup.setOnCheckedChangeListener(onCheckedChangeListener);
     }
 
     @Override
@@ -121,6 +134,7 @@ public class NewContactFragment extends DaggerFragment implements View.OnClickLi
         super.onPause();
         requireParentFragment().getChildFragmentManager().clearFragmentResultListener(getClass().getSimpleName());
         binding.nrTelefone.removeTextChangedListener(textWatcher);
+        binding.chipGroup.setOnCheckedChangeListener(null);
         binding.barra.setNavigationOnClickListener(null);
 
         if (onMenuItemClickListener != null) {
@@ -143,6 +157,7 @@ public class NewContactFragment extends DaggerFragment implements View.OnClickLi
         super.onDestroyView();
         onMenuItemClickListener = null;
         viewModel = null;
+        onCheckedChangeListener = null;
         map = null;
         textWatcher = null;
         disposables = null;
@@ -155,6 +170,10 @@ public class NewContactFragment extends DaggerFragment implements View.OnClickLi
     public void onViewStateRestored(@Nullable Bundle savedInstanceState) {
         super.onViewStateRestored(savedInstanceState);
         bundle = savedInstanceState == null ? new Bundle() : savedInstanceState.getBundle("bundle");
+
+        if (savedInstanceState != null) {
+            observarParent(null, bundle);
+        }
     }
 
     @Override
@@ -166,22 +185,16 @@ public class NewContactFragment extends DaggerFragment implements View.OnClickLi
     private void observarParent(String requestKey, Bundle result) {
         bundle = bundle.size() == 0 ? result : bundle;
 
-        if (result.containsKey("idToUpdate")) {
-            if (viewModel == null) {
-                viewModel = new ViewModelProvider(requireActivity(), providerFactory).get(MapViewModel.class);
-            }
-
-            bundle.putString("idToUpdate", String.valueOf(result.getInt("idToUpdate")));
+        if (bundle.containsKey("idToUpdate")) {
             binding.nrTelefone.setText(bundle.getString("idToUpdate"));
-            binding.barra.setTitle("Editar contacto");
         }
+
+        binding.barra.setTitle((bundle.containsKey("idToUpdate") ? "Editar " : "Novo ").concat("contacto"));
 
         if (TextUtils.isEmpty(binding.barra.getTitle())) {
             for (int i = 0 ; i < binding.barra.getMenu().size() ; i++) {
                 binding.barra.getMenu().getItem(i).setEnabled(bundle.containsKey("selectedPosition"));
             }
-
-            binding.barra.setTitle("Novo contacto");
         }
     }
 
@@ -201,12 +214,6 @@ public class NewContactFragment extends DaggerFragment implements View.OnClickLi
     }
 
     private boolean observarOnMenuItemClick(MenuItem item) {
-        if (map == null) {
-            map = new HashMap<>();
-        }
-
-        map.put("contactoPrincipal", bundle.getInt("selectedPosition") == 0);
-
         return disposables.add(service.getBarbeariaService().inserirContacto(bundle.getString("id"), binding.nrTelefone.getText().toString(), map).doOnEvent((aBoolean, throwable) -> bundle.putString("status", throwable == null ? String.valueOf(aBoolean) : "between")).doOnSubscribe(disposable -> item.setEnabled(false)).doFinally(() -> item.setEnabled(true)).subscribe(this::observarResposta, throwable -> Toast.makeText(requireActivity(), "", Toast.LENGTH_LONG).show()));
     }
 }

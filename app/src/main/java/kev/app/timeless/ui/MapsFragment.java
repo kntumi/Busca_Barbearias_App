@@ -14,7 +14,9 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
+import androidx.core.text.PrecomputedTextCompat;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentResultListener;
@@ -23,21 +25,30 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.firebase.geofire.GeoFireUtils;
 import com.firebase.geofire.GeoLocation;
+import com.firebase.geofire.GeoQueryBounds;
 import com.firebase.geofire.core.GeoHash;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.CancellationTokenSource;
+import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.Tasks;
+import com.google.android.material.snackbar.Snackbar;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
@@ -45,8 +56,6 @@ import javax.inject.Inject;
 import dagger.android.support.DaggerFragment;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
-import io.reactivex.functions.Action;
-import io.reactivex.functions.Consumer;
 import io.reactivex.internal.operators.maybe.MaybeCallbackObserver;
 import io.reactivex.schedulers.Schedulers;
 import kev.app.timeless.R;
@@ -54,9 +63,10 @@ import kev.app.timeless.api.Service;
 import kev.app.timeless.databinding.FragmentMapsBinding;
 import kev.app.timeless.di.viewModelFactory.ViewModelProvidersFactory;
 import kev.app.timeless.model.User;
+import kev.app.timeless.util.FragmentUtil;
 import kev.app.timeless.viewmodel.MapViewModel;
 
-public class MapsFragment extends DaggerFragment implements OnMapReadyCallback, GoogleMap.OnCameraMoveListener , GoogleMap.OnCameraIdleListener, GoogleMap.OnMapLongClickListener, View.OnClickListener, GoogleMap.OnInfoWindowClickListener {
+public class MapsFragment extends DaggerFragment implements OnMapReadyCallback, GoogleMap.OnCameraIdleListener, GoogleMap.OnMapLongClickListener, View.OnClickListener, GoogleMap.OnInfoWindowClickListener {
     @Inject
     Service service;
 
@@ -69,7 +79,10 @@ public class MapsFragment extends DaggerFragment implements OnMapReadyCallback, 
     private Map<String, Marker> markers;
     private FragmentResultListener parentResultListener, childResultListener;
     private Disposable disposable;
+    private SupportMapFragment mapFragment;
+    private Toolbar.OnMenuItemClickListener onMenuItemClickListener;
     private Bundle bundle;
+    private ExecutorService executorService;
     private MapsActivity mapsActivity;
     private MapViewModel viewModel;
     public String id;
@@ -84,47 +97,51 @@ public class MapsFragment extends DaggerFragment implements OnMapReadyCallback, 
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         mapsActivity = (MapsActivity) requireActivity();
-        binding.map.onCreate(savedInstanceState);
         markers = new HashMap<>();
         bundle = new Bundle();
         viewModel = new ViewModelProvider(requireActivity(), providerFactory).get(MapViewModel.class);
+        executorService = (ExecutorService) viewModel.getService().getExecutor();
         userObserver = this::observarUsers;
         parentResultListener = this::observarParent;
         childResultListener = this::observarChild;
+        onMenuItemClickListener = item -> getChildFragmentManager().beginTransaction().add(new ProfileFragment(), null).commit() == 0;
+        mapFragment = (SupportMapFragment) getChildFragmentManager().findFragmentById(R.id.map);
 
         if (savedInstanceState == null) {
             verificarPermissao();
         }
+
+        binding.textView.setTextFuture(PrecomputedTextCompat.getTextFuture("Pesquise por nome", binding.textView.getTextMetricsParamsCompat(), executorService));
 
         if (viewModel.getLocation().getValue() != null) {
             observarLocation(viewModel.getLocation().getValue());
         }
 
         if (ActivityCompat.checkSelfPermission(requireActivity(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(requireActivity(), Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            binding.map.getMapAsync(this);
+            mapFragment.getMapAsync(this);
         }
-    }
-
-    @Override
-    public void onStart() {
-        super.onStart();
-        binding.map.onStart();
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        binding.map.onResume();
         mapsActivity.getSupportFragmentManager().setFragmentResultListener(getClass().getSimpleName(), this, parentResultListener);
         getChildFragmentManager().setFragmentResultListener(getClass().getSimpleName(), this, childResultListener);
+        binding.materialToolbar.setOnMenuItemClickListener(onMenuItemClickListener);
+        binding.localizacao.setOnClickListener(this);
+        binding.textView.setOnClickListener(this);
+        binding.ir.setOnClickListener(this);
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        binding.map.onPause();
         mapsActivity.getSupportFragmentManager().clearFragmentResultListener(getClass().getSimpleName());
         getChildFragmentManager().clearFragmentResultListener(getClass().getSimpleName());
+        binding.materialToolbar.setOnMenuItemClickListener(null);
+        binding.localizacao.setOnClickListener(null);
+        binding.textView.setOnClickListener(null);
+        binding.ir.setOnClickListener(null);
 
         try {
             mMap.setOnMapLongClickListener(null);
@@ -134,7 +151,11 @@ public class MapsFragment extends DaggerFragment implements OnMapReadyCallback, 
 
         try {
             mMap.setOnInfoWindowClickListener(null);
-            mMap.setOnCameraIdleListener(null);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        try {
             mMap.setOnCameraMoveListener(null);
         } catch (Exception e) {
             e.printStackTrace();
@@ -146,44 +167,24 @@ public class MapsFragment extends DaggerFragment implements OnMapReadyCallback, 
     }
 
     @Override
-    public void onStop() {
-        super.onStop();
-        binding.map.onStop();
-    }
-
-    @Override
     public void onDestroyView() {
         super.onDestroyView();
-        binding.map.onDestroy();
         bundle.clear();
         bundle = null;
         mapsActivity = null;
+        mapFragment = null;
+        onMenuItemClickListener = null;
         parentResultListener = null;
         childResultListener = null;
         markers.clear();
         markers = null;
+        executorService = null;
         viewModel = null;
         disposable = null;
         id = null;
         userObserver = null;
         mMap = null;
         binding = null;
-    }
-
-    @Override
-    public void onSaveInstanceState(@NonNull Bundle outState) {
-        super.onSaveInstanceState(outState);
-        try {
-            binding.map.onSaveInstanceState(outState);
-        } catch (NullPointerException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Override
-    public void onLowMemory() {
-        super.onLowMemory();
-        binding.map.onLowMemory();
     }
 
     public Observer<List<User>> getUserObserver() {
@@ -194,19 +195,8 @@ public class MapsFragment extends DaggerFragment implements OnMapReadyCallback, 
         id = users.size() == 0 ? null : users.get(0).getId();
         bundle.putString("id", id);
 
-        for (Fragment f : getChildFragmentManager().getFragments()) {
-            getChildFragmentManager().beginTransaction().remove(f).commit();
-        }
-
-        getChildFragmentManager()
-                .beginTransaction()
-                .replace(binding.layoutFragment.getId(), users.size() == 0 ? new NonUserControlFragment(): new UserControlFragment(), null)
-                .commit();
-
-        try {
+        if (mMap != null) {
             mMap.setOnMapLongClickListener(TextUtils.isEmpty(id) ? null : this);
-        } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 
@@ -218,13 +208,15 @@ public class MapsFragment extends DaggerFragment implements OnMapReadyCallback, 
             }
 
             if (mMap != null) {
-                mMap.moveCamera(CameraUpdateFactory.newCameraPosition(new CameraPosition.Builder().target(new LatLng(viewModel.getLocation().getValue().getLatitude(), viewModel.getLocation().getValue().getLongitude())).zoom(19).bearing(90).tilt(30).build()));
+                mMap.moveCamera(CameraUpdateFactory.newCameraPosition(new CameraPosition.Builder().target(new LatLng(viewModel.getLocation().getValue().getLatitude(), viewModel.getLocation().getValue().getLongitude())).zoom(19).bearing(0).tilt(0).build()));
                 mMap.setMyLocationEnabled(true);
             }
         }
     }
 
-    private void buscarEstabelecimentos (Map<String, Map<String, Object>> estabelecimentos) {
+    private void buscarEstabelecimentos(Map<String, Map<String, Object>> estabelecimentos) {
+        viewModel.getEstabelecimentos().putAll(estabelecimentos);
+
         for (String key : estabelecimentos.keySet()) {
             Map<String, Object> map = estabelecimentos.get(key);
 
@@ -242,13 +234,40 @@ public class MapsFragment extends DaggerFragment implements OnMapReadyCallback, 
 
     @Override
     public void onCameraIdle() {
-        if (binding.layoutFragment.getVisibility() == View.GONE) {
-            binding.layoutFragment.setVisibility(View.VISIBLE);
+        if (mMap.getCameraPosition().zoom < 17) {
+            return;
         }
 
-        if (mMap.getCameraPosition().zoom >= 17) {
-            service.getBarbeariaService().buscarBarbearias(mMap.getCameraPosition().target).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).doOnSubscribe(disposable ->  buscarEstabelecimentos(viewModel.getEstabelecimentos())).doOnSuccess(this::buscarEstabelecimentos).subscribe(new MaybeCallbackObserver<>(map -> viewModel.getEstabelecimentos().putAll(map), Throwable::printStackTrace, null));
-        }
+        requireActivity().runOnUiThread(() -> {
+            List<GeoQueryBounds> bounds = GeoFireUtils.getGeoHashQueryBounds(new GeoLocation(mMap.getCameraPosition().target.latitude, mMap.getCameraPosition().target.longitude), 0.5 * 1000);
+
+            executorService.submit(() -> {
+                try {
+                    Map<String, Map<String, Object>> estabelecimentos = new HashMap<>();
+                    List<Task<QuerySnapshot>> tasks = new ArrayList<>();
+
+                    for (GeoQueryBounds b : bounds) {
+                        tasks.add(service.getFirestore().collection("Barbearia").orderBy("hash").startAt(b.startHash).endAt(b.endHash).get());
+                    }
+
+                    Tasks.whenAllComplete(tasks)
+                            .addOnSuccessListener(tasks1 -> {
+                                for (Task<?> task : tasks1) {
+                                    Task<QuerySnapshot> task1 = (Task<QuerySnapshot>) task;
+
+                                    for (DocumentSnapshot documentSnapshot : task1.getResult()) {
+                                        estabelecimentos.put(documentSnapshot.getId(), documentSnapshot.getData());
+                                    }
+                                }
+
+                                buscarEstabelecimentos(estabelecimentos);
+                            })
+                            .addOnFailureListener(Throwable::printStackTrace);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
+        });
     }
 
     @Override
@@ -256,7 +275,6 @@ public class MapsFragment extends DaggerFragment implements OnMapReadyCallback, 
         mMap = googleMap;
         mMap.setOnCameraIdleListener(this);
         mMap.setOnInfoWindowClickListener(this);
-        mMap.setOnCameraMoveListener(this);
 
         if (viewModel.getLocation().getValue() != null) {
             observarLocation(viewModel.getLocation().getValue());
@@ -272,63 +290,55 @@ public class MapsFragment extends DaggerFragment implements OnMapReadyCallback, 
     @Override
     public void onClick(View view) {
         switch (view.getId()){
-            case R.id.btnOpcoes: new ProfileFragment().show(getChildFragmentManager(), "currentFragment");
+            case R.id.localizacao: obterLocalizacaoActual();
                 break;
-            case R.id.btnVoltar: requireActivity().finish();
+            case R.id.ir:
                 break;
-            case R.id.btnEncontrar: if (viewModel.getLocation().getValue() != null) {
-                                        mMap.moveCamera(CameraUpdateFactory.newCameraPosition(new CameraPosition.Builder().target(new LatLng(viewModel.getLocation().getValue().getLatitude(), viewModel.getLocation().getValue().getLongitude())).zoom(19).bearing(90).tilt(30).build()));
-                                    } else {
-                                        verificarPermissao();
-                                    }
+            case R.id.textView: requireActivity().getSupportFragmentManager().beginTransaction().setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out).replace(binding.layoutPrincipal.getId(), FragmentUtil.obterFragment("SearchFragment", bundle)).commit();
                 break;
-            case R.id.btnEncontrarBarberia: new LayoutFragment().show(getChildFragmentManager(), "currentFragment");
-                                            Bundle b = new Bundle();
-                                            b.putString("fragmentToLoad", "AboutFragment");
-                                            b.putString("id", id);
-                                            getChildFragmentManager().setFragmentResult("LayoutFragment", b);
-                break;
-            case R.id.btn: if (viewModel.getEstabelecimentos().containsKey(id)) {
-                                     Map<String, Object> map = viewModel.getEstabelecimentos().get(id);
+        }
+    }
 
-                                     if (map.containsKey("hash")) {
-                                         GeoLocation location = GeoHash.locationFromHash(String.valueOf(map.get("hash")));
-                                         mMap.moveCamera(CameraUpdateFactory.newCameraPosition(new CameraPosition.Builder().target(new LatLng(location.latitude, location.longitude)).zoom(19).bearing(90).tilt(30).build()));
-                                     } else {
-                                         Toast.makeText(requireActivity(), "",Toast.LENGTH_LONG).show();
-                                     }
-                                 } else {
-                                    Toast.makeText(requireActivity(), "",Toast.LENGTH_LONG).show();
-                                 }
-                break;
+    private void obterLocalizacaoActual() {
+        if (viewModel.getLocation().getValue() != null) {
+            mMap.moveCamera(CameraUpdateFactory.newCameraPosition(new CameraPosition.Builder().target(new LatLng(viewModel.getLocation().getValue().getLatitude(), viewModel.getLocation().getValue().getLongitude())).zoom(19).bearing(0).tilt(0).build()));
+        } else {
+            verificarPermissao();
         }
     }
 
     private void verificarPermissao() {
         if (ActivityCompat.checkSelfPermission(requireActivity(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(requireActivity(), Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            Location cachedLocation = service.getLocationManager().getLastKnownLocation(LocationManager.GPS_PROVIDER) != null ? service.getLocationManager().getLastKnownLocation(LocationManager.GPS_PROVIDER) : service.getLocationManager().getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-
-            if (cachedLocation == null) {
-                if (service.getLocationManager().getProviders(true).contains(LocationManager.GPS_PROVIDER)) {
-                    if (viewModel.getLocation().getValue() == null) {
-                        service.getLocationService().getLocation(new CancellationTokenSource().getToken()).doOnSubscribe(new Consumer<Disposable>() {
-                            @Override
-                            public void accept(Disposable disposable) throws Exception {
-
-                            }
-                        }).doFinally(new Action() {
-                            @Override
-                            public void run() throws Exception {
-
-                            }
-                        }).subscribe(new MaybeCallbackObserver<>(this::observarLocation, Throwable::printStackTrace, null));
-                    }
-                } else {
-                    Toast.makeText(requireActivity(), "O GPS está desactivado!", Toast.LENGTH_LONG).show();
-                }
-            } else {
-                observarLocation(cachedLocation);
+            if (viewModel.getLocation().getValue() != null) {
+                return;
             }
+
+            Location location = null;
+
+            for (String provider : service.getLocationManager().getAllProviders()) {
+                Location previousLocation = (location == null) ? (location = service.getLocationManager().getLastKnownLocation(provider)) : service.getLocationManager().getLastKnownLocation(provider);
+
+                if (previousLocation == null || previousLocation == location) {
+                    continue;
+                }
+
+                if (previousLocation.hasAccuracy() && location.hasAccuracy()) {
+                    location = previousLocation.getAccuracy() > location.getAccuracy() ? previousLocation : location;
+                }
+            }
+
+            if (location != null) {
+                observarLocation(location);
+                return;
+            }
+
+            if (!service.getLocationManager().getProviders(true).contains(LocationManager.GPS_PROVIDER)) {
+                Snackbar.make(binding.layoutPrincipal, "O GPS está desactivado!", Snackbar.LENGTH_LONG).setAction("Ativar", this).show();
+                return;
+            }
+
+            service.getLocationService().getLocation(new CancellationTokenSource().getToken()).subscribe(new MaybeCallbackObserver<>(this::observarLocation, Throwable::printStackTrace, null));
+
         } else {
             mapsActivity.getActivityResultLauncher().launch(new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION});
         }
@@ -422,21 +432,20 @@ public class MapsFragment extends DaggerFragment implements OnMapReadyCallback, 
 
             for (String key : result.keySet()) {
                 if (TextUtils.equals(key, Manifest.permission.ACCESS_FINE_LOCATION) || TextUtils.equals(key, Manifest.permission.ACCESS_COARSE_LOCATION)) {
-                    if (result.getBoolean(key)) {
-                        granted++;
-                    }
+                    granted = result.getBoolean(key) ? granted + 1 : granted - 1;
                 }
             }
 
-            if (granted != 0) {
-                if (mMap == null) {
-                    binding.map.getMapAsync(this);
-                }
-
-                verificarPermissao();
-            } else {
+            if (granted <= 0) {
                 Toast.makeText(requireActivity(), "Não foi possivel buscar a sua localização", Toast.LENGTH_LONG).show();
+                return;
             }
+
+            if (mMap == null) {
+                mapFragment.getMapAsync(this);
+            }
+
+            verificarPermissao();
         }
     }
 
@@ -482,15 +491,14 @@ public class MapsFragment extends DaggerFragment implements OnMapReadyCallback, 
 
     @Override
     public void onInfoWindowClick(@NonNull Marker marker) {
-        new LayoutFragment().show(getChildFragmentManager(), "currentFragment");
-        Bundle b = new Bundle();
-        b.putString("fragmentToLoad", "AboutFragment");
-        b.putString("id", String.valueOf(marker.getTag()));
-        getChildFragmentManager().setFragmentResult("LayoutFragment", b);
-    }
+        getChildFragmentManager().beginTransaction().add(new LayoutFragment(), null).runOnCommit(() -> {
+            for (Fragment f : getChildFragmentManager().getFragments()) {
+                if (!TextUtils.equals(f.getClass().getSimpleName(), "LayoutFragment")) {
+                    continue;
+                }
 
-    @Override
-    public void onCameraMove() {
-        binding.layoutFragment.setVisibility(View.GONE);
+                f.getChildFragmentManager().beginTransaction().setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out).replace(binding.layoutPrincipal.getId(), FragmentUtil.obterFragment("AboutFragment", bundle)).commit();
+            }
+        }).commit();
     }
 }
