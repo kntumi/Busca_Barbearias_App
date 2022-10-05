@@ -1,6 +1,8 @@
 package kev.app.timeless.ui;
 
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -22,6 +24,8 @@ import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.Tasks;
 import com.google.android.material.button.MaterialButton;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
@@ -35,11 +39,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
 
 import dagger.android.support.DaggerFragment;
-import io.reactivex.disposables.Disposable;
 import kev.app.timeless.R;
 import kev.app.timeless.databinding.FragmentScheduleBinding;
 import kev.app.timeless.di.viewModelFactory.ViewModelProvidersFactory;
@@ -59,10 +63,11 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
     private Map<State, View> map;
     private LinearLayoutManager linearLayoutManager;
     private String loggedInUserId;
-    private Disposable disposable;
+    private List<Task<?>> tasks;
     private ScheduleAdapter scheduleAdapter;
     private MapViewModel viewModel;
     private ViewTreeObserver.OnGlobalLayoutListener onGlobalLayoutListener;
+    private Handler handler;
 
     @Inject
     ViewModelProvidersFactory providerFactory;
@@ -80,6 +85,7 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
         viewModel = new ViewModelProvider(requireActivity(), providerFactory).get(MapViewModel.class);
         observer = users -> loggedInUserId = users.size() == 0 ? null : users.get(users.size() - 1).getId();
         onGlobalLayoutListener = this::observarLayout;
+        handler = new Handler(Looper.getMainLooper());
         map = new HashMap<>();
 
         if (savedInstanceState == null) {
@@ -105,12 +111,8 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
         binding.layoutPrincipal.getViewTreeObserver().removeOnGlobalLayoutListener(onGlobalLayoutListener);
         binding.barra.setNavigationOnClickListener(null);
 
-        if (disposable != null) {
-            if (!disposable.isDisposed()) {
-                disposable.dispose();
-            }
-
-            disposable = null;
+        if (tasks != null) {
+            tasks.clear();
         }
 
         if (listenerRegistration != null) {
@@ -139,7 +141,8 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
         bundle.clear();
         linearLayoutManager = null;
         loggedInUserId = null;
-        disposable = null;
+        handler = null;
+        tasks = null;
         onGlobalLayoutListener = null;
         map = null;
         observer = null;
@@ -165,6 +168,14 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
     public void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putBundle("bundle", new Bundle(bundle));
+    }
+
+    public List<Task<?>> getTasks() {
+        if (tasks == null) {
+            tasks = new ArrayList<>();
+        }
+
+        return tasks;
     }
 
     public Observer<List<User>> getObserver() {
@@ -344,19 +355,42 @@ public class ScheduleFragment extends DaggerFragment implements View.OnClickList
     }
 
     private void obterHorario(Bundle bundle) {
-        if (disposable != null) {
-            disposable.dispose();
-        }
+        getTasks().clear();
 
-        disposable = viewModel.getService().getBarbeariaService().obterHorário(bundle.getString("id")).subscribe(stringMapMap -> {
-            viewModel.getHorários().put(bundle.getString("id"), stringMapMap);
+        getTasks().add(
+                Tasks.withTimeout(viewModel.getService().getBarbeariaService().obterHorario(bundle.getString("id")), 5, TimeUnit.SECONDS)
+                        .addOnSuccessListener(viewModel.getService().getExecutor(), queryDocumentSnapshots -> {
+                            Map<String, Map<String, Object>> horario = new HashMap<>();
 
-            if (stringMapMap.size() == 0) {
-                onEmpty();
-            } else {
-                onLoaded();
-            }
-        }, throwable -> onError());
+                            for (DocumentSnapshot documentSnapshot : queryDocumentSnapshots.getDocuments()) {
+                                horario.put(documentSnapshot.getId(), new HashMap<>());
+
+                                for (String key : documentSnapshot.getData().keySet()) {
+                                    horario.get(documentSnapshot.getId()).put(key, documentSnapshot.get(key));
+                                }
+                            }
+
+                            viewModel.getHorários().put(bundle.getString("id"), horario);
+
+                            try {
+                                handler.post(() -> {
+                                    if (horario.size() == 0) {
+                                        onEmpty();
+                                    } else {
+                                        onLoaded();
+                                    }
+                                });
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }).addOnFailureListener(viewModel.getService().getExecutor(), e -> {
+                            try {
+                                handler.post(this::onError);
+                            } catch (Exception x) {
+                                x.printStackTrace();
+                            }
+                        })
+        );
     }
 
     private void onLoaded() {

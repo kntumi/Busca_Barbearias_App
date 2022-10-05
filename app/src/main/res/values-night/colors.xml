@@ -4,11 +4,9 @@
     <color name="colorPrimaryDark">#3700B3</color>
     <color name="colorAccent">#03DAC5</color>
     <color name="corDivider">#ccc</color>
-    <color name="corFab">#80BAFF</color>
     <color name="corIcon">#000</color>
     <color name="corMain">#000</color>
     <color name="corStatusBar">#202020</color>
-    <color name="cor_bg">#202020</color>
-    <color name="chip_bg">@color/colorPrimary</color>
+    <color name="chip_bg">#8995FF</color>
     <color name="text_color">@color/text_color_chip_night</color>
 </resources>

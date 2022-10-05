@@ -1,16 +1,9 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:id="@+id/seg"
-        android:title="Segunda-Feira" />
-    <item android:id="@+id/ter"
-        android:title="Terça-Feira" />
-    <item android:id="@+id/qua"
-        android:title="Quarta-Feira" />
-    <item android:id="@+id/qui"
-        android:title="Quinta-Feira" />
-    <item android:id="@+id/sex"
-        android:title="Sexta-Feira" />
-    <item android:id="@+id/sab"
-        android:title="Sábado" />
-    <item android:id="@+id/dom"
-        android:title="Domingo" />
+    <item android:title="Segunda-Feira" />
+    <item android:title="Terça-Feira" />
+    <item android:title="Quarta-Feira" />
+    <item android:title="Quinta-Feira" />
+    <item android:title="Sexta-Feira" />
+    <item android:title="Sábado" />
+    <item android:title="Domingo" />
 </menu>

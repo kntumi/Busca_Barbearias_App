@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:tools="http://schemas.android.com/tools"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<layout xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:android="http://schemas.android.com/apk/res/android">
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -32,11 +31,9 @@
             android:id="@+id/nome"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="18dp"
             android:layout_marginTop="24dp"
-            android:paddingHorizontal="4dp"
-            android:textColor="@color/colorPrimary"
-            android:textSize="12sp"
+            android:textAppearance="?android:attr/textAppearanceListItemSecondary"
             app:layout_constraintStart_toEndOf="@+id/info"
             app:layout_constraintTop_toTopOf="parent" />
 
@@ -44,9 +41,7 @@
             android:id="@+id/txtNome"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="16sp"
-            android:textColor="?android:textColorPrimary"
-            android:paddingHorizontal="4dp"
+            android:textAppearance="?android:attr/textAppearanceSmall"
             app:layout_constraintStart_toStartOf="@id/nome"
             app:layout_constraintTop_toBottomOf="@+id/nome" />
 
@@ -57,6 +52,7 @@
             android:background="?android:selectableItemBackground"
             android:textColor="?android:textColorPrimary"
             android:drawablePadding="16dp"
+            android:textAppearance="?android:attr/textAppearanceSmall"
             android:drawableStart="@drawable/call"
             android:drawableEnd="@drawable/go"
             android:paddingStart="24dp"
@@ -77,6 +73,7 @@
             android:drawableEnd="@drawable/go"
             android:drawablePadding="16dp"
             android:paddingStart="24dp"
+            android:textAppearance="?android:attr/textAppearanceSmall"
             android:paddingTop="16dp"
             android:paddingEnd="24dp"
             android:paddingBottom="16dp"
@@ -95,6 +92,7 @@
             android:paddingStart="24dp"
             android:paddingTop="16dp"
             android:paddingEnd="24dp"
+            android:textAppearance="?android:attr/textAppearanceSmall"
             android:drawableStart="@drawable/schedule"
             android:paddingBottom="16dp"
             android:textColor="?android:textColorPrimary"

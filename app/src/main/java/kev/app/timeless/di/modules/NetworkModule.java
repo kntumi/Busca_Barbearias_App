@@ -18,9 +18,9 @@ import kev.app.timeless.viewmodel.MapViewModel;
 
 @Module
 public class NetworkModule{
-    private Context context;
-    private FirebaseFirestore firestore;
-    private FirebaseAuth firebaseAuth;
+    private final Context context;
+    private final FirebaseFirestore firestore;
+    private final FirebaseAuth firebaseAuth;
 
     public NetworkModule(Context context) {
         this.context = context;

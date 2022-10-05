@@ -16,7 +16,6 @@ import kev.app.timeless.ui.SearchFragment;
 import kev.app.timeless.ui.ServicesFragment;
 import kev.app.timeless.ui.SubServiceFragment;
 import kev.app.timeless.ui.TypeServicesFragment;
-import kev.app.timeless.ui.UserControlFragment;
 import kev.app.timeless.ui.UserFragment;
 
 @Module
@@ -29,7 +28,6 @@ public abstract class FragmentBuildersModule {
     @ContributesAndroidInjector abstract AboutFragment contributeAboutFragment();
     @ContributesAndroidInjector abstract InsertNameFragment contributeInsertNameFragment();
     @ContributesAndroidInjector abstract ContactsFragment contributeContactsFragment();
-    @ContributesAndroidInjector abstract UserControlFragment contributeUserControlFragment();
     @ContributesAndroidInjector abstract NewContactFragment contributeNewContactFragment();
     @ContributesAndroidInjector abstract ServicesFragment contributeServicesFragment();
     @ContributesAndroidInjector abstract TypeServicesFragment contributeTypeServicesFragment();

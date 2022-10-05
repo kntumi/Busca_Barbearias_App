@@ -21,14 +21,14 @@ public class ViewModelProvidersFactory implements Factory {
 
   @NonNull
   public <T extends ViewModel> T create(@NonNull Class<T> modelClass) {
-    Provider<? extends ViewModel> creator = (Provider)this.creators.get(modelClass);
+    Provider<? extends ViewModel> creator = this.creators.get(modelClass);
     if (creator == null) {
       Iterator var3 = this.creators.entrySet().iterator();
 
       while(var3.hasNext()) {
         Entry<Class<? extends ViewModel>, Provider<ViewModel>> entry = (Entry)var3.next();
-        if (modelClass.isAssignableFrom((Class)entry.getKey())) {
-          creator = (Provider)entry.getValue();
+        if (modelClass.isAssignableFrom(entry.getKey())) {
+          creator = entry.getValue();
           break;
         }
       }

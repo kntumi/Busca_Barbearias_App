@@ -2,72 +2,34 @@
 <layout xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:android="http://schemas.android.com/apk/res/android">
 
-        <androidx.constraintlayout.widget.ConstraintLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/layoutPrincipal">
+
+        <com.google.android.gms.maps.MapView
+            android:id="@+id/map"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:animateLayoutChanges="true"
-            android:id="@+id/layoutPrincipal">
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
-            <androidx.fragment.app.FragmentContainerView
-                android:id="@+id/map"
-                android:name="com.google.android.gms.maps.SupportMapFragment"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"/>
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/perto"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="16dp"
+            style="@style/topFabButton"
+            android:src="@drawable/minha_localizacao"
+            app:elevation="0dp"
+            app:hoveredFocusedTranslationZ="0dp"
+            app:pressedTranslationZ="0dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
 
-            <androidx.appcompat.widget.Toolbar
-                android:id="@+id/materialToolbar"
-                style="@style/Widget.MaterialComponents.Toolbar.Surface"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@drawable/bg_toolbar"
-                app:contentInsetStart="0dp"
-                android:layout_margin="24dp"
-                app:contentInsetStartWithNavigation="0dp"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:navigationIcon="@drawable/search"
-                app:menu="@menu/profile">
-
-                <androidx.appcompat.widget.AppCompatTextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textSize="16sp"
-                    android:id="@+id/textView" />
-
-            </androidx.appcompat.widget.Toolbar>
-
-            <com.google.android.material.floatingactionbutton.FloatingActionButton
-                android:id="@+id/localizacao"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                app:elevation="0dp"
-                android:src="@drawable/minha_localizacao"
-                app:fabSize="auto"
-                android:layout_margin="24dp"
-                app:pressedTranslationZ="0dp"
-                app:hoveredFocusedTranslationZ="0dp"
-                app:layout_constraintBottom_toTopOf="@id/ir"
-                app:layout_constraintEnd_toEndOf="parent"/>
-
-            <com.google.android.material.floatingactionbutton.FloatingActionButton
-                android:id="@+id/ir"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                app:elevation="0dp"
-                android:src="@drawable/direccao"
-                app:fabSize="auto"
-                app:pressedTranslationZ="0dp"
-                app:hoveredFocusedTranslationZ="0dp"
-                android:layout_margin="24dp"
-                app:maxImageSize="24dp"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"/>
-
-        </androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </layout>

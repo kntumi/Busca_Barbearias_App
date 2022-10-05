@@ -16,7 +16,7 @@ import com.google.android.material.checkbox.MaterialCheckBox;
 import kev.app.timeless.R;
 
 public class ContactsTypeAdapter extends ListAdapter<String, ContactsTypeAdapter.ViewHolder> {
-    private CompoundButton.OnCheckedChangeListener onCheckedChangeListener;
+    private final CompoundButton.OnCheckedChangeListener onCheckedChangeListener;
 
     public ContactsTypeAdapter(@NonNull DiffUtil.ItemCallback<String> diffCallback, CompoundButton.OnCheckedChangeListener onCheckedChangeListener) {
         super(diffCallback);
@@ -53,7 +53,7 @@ public class ContactsTypeAdapter extends ListAdapter<String, ContactsTypeAdapter
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        private MaterialCheckBox materialCheckBox;
+        private final MaterialCheckBox materialCheckBox;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);

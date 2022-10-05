@@ -5,5 +5,4 @@
     android:paddingHorizontal="24dp"
     android:layout_height="wrap_content"
     android:layout_marginTop="12dp"
-    android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
-    android:id="@+id/tipoContactos"/>
+    android:textAppearance="@style/TextAppearance.MaterialComponents.Caption" />

@@ -201,7 +201,7 @@ public class ServicesFragment extends DaggerFragment implements View.OnClickList
     @Override
     public boolean onLongClick(View view) {
         try {
-            disposable = viewModel.getService().getBarbeariaService().removerServiço(bundle.getString("id"), servicesAdapter.getCurrentList().get(linearLayoutManager.getPosition(view)).getId()).subscribe(aBoolean -> Toast.makeText(requireActivity(), aBoolean ? "" : "", Toast.LENGTH_LONG).show(), throwable -> Toast.makeText(requireActivity(), "", Toast.LENGTH_LONG));
+            disposable = viewModel.getService().getBarbeariaService().removerServiço(bundle.getString("id"), servicesAdapter.getCurrentList().get(linearLayoutManager.getPosition(view)).getId()).subscribe(aBoolean -> Toast.makeText(requireActivity(), "", Toast.LENGTH_LONG).show(), throwable -> Toast.makeText(requireActivity(), "", Toast.LENGTH_LONG));
         } catch (Exception e) {
             e.printStackTrace();
         }

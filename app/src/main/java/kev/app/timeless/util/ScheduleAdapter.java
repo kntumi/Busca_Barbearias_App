@@ -18,8 +18,8 @@ import kev.app.timeless.R;
 import kev.app.timeless.model.Horário;
 
 public class ScheduleAdapter extends ListAdapter<Horário, ScheduleAdapter.ScheduleViewHolder> {
-    private View.OnClickListener onClickListener;
-    private LoggedInListener loggedInListener;
+    private final View.OnClickListener onClickListener;
+    private final LoggedInListener loggedInListener;
 
     public ScheduleAdapter(@NonNull DiffUtil.ItemCallback<Horário> diffCallback, View.OnClickListener onClickListener, LoggedInListener loggedInListener) {
         super(diffCallback);
@@ -67,8 +67,10 @@ public class ScheduleAdapter extends ListAdapter<Horário, ScheduleAdapter.Sched
     }
 
     public static class ScheduleViewHolder extends RecyclerView.ViewHolder {
-        private TextView txtDiaSemana, txtHorario;
-        private ImageView show, edit;
+        private final TextView txtDiaSemana;
+        private final TextView txtHorario;
+        private final ImageView show;
+        private final ImageView edit;
 
         public ScheduleViewHolder(@NonNull View itemView) {
             super(itemView);

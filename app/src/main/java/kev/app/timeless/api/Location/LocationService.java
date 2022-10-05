@@ -6,9 +6,10 @@ import com.google.android.gms.tasks.CancellationToken;
 import com.google.android.gms.tasks.Task;
 
 import io.reactivex.Maybe;
+import kev.app.timeless.model.Result;
 
 public interface LocationService {
-    Maybe<Location> getLocation(CancellationToken cancellationToken);
-    Maybe<Task<Void>> insertLocation(String id, String hash);
-    Maybe<Task<Void>> removeLocation(String id);
+    Task<Location> getLocation(CancellationToken cancellationToken);
+    Task<Void> insertLocation(String id, String hash);
+    Task<Void> removeLocation(String id);
 }

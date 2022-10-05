@@ -8,7 +8,6 @@ import androidx.room.Room;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.tasks.CancellationToken;
 import com.google.android.gms.tasks.Task;
 import com.google.api.client.http.HttpRequestFactory;
@@ -17,10 +16,11 @@ import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.google.gson.Gson;
 
 import java.util.Map;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import javax.inject.Inject;
@@ -33,23 +33,24 @@ import kev.app.timeless.api.Authentication.AuthService;
 import kev.app.timeless.api.Barbearia.Barbearia;
 import kev.app.timeless.api.Barbearia.BarbeariaService;
 import kev.app.timeless.api.Location.LocationService;
+import kev.app.timeless.model.Result;
 import kev.app.timeless.room.UserDao;
 import kev.app.timeless.room.UserDatabase;
 
 @Singleton
 public class Service {
-    private FirebaseFirestore firestore;
-    private Context context;
-    private FirebaseAuth auth;
+    private final FirebaseFirestore firestore;
+    private final Context context;
+    private final FirebaseAuth auth;
+    private final LocationManager locationManager;
+    private final FusedLocationProviderClient fusedLocationProviderClient;
     private AuthService authService;
     private BarbeariaService barbeariaService;
     private UserDatabase userDatabase;
     private LocationService locationService;
-    private LocationManager locationManager;
-    private FusedLocationProviderClient fusedLocationProviderClient;
     private Gson gson;
     private HttpRequestFactory requestFactory;
-    private Executor executor;
+    private ExecutorService executor;
 
     @Inject
     public Service(FirebaseFirestore firestore, FirebaseAuth auth, Context context) {
@@ -68,8 +69,8 @@ public class Service {
         if (barbeariaService == null) {
             barbeariaService = new BarbeariaService() {
                 @Override
-                public Maybe<Map<String, Map<String, Object>>> buscarBarbearias(LatLng latLng) {
-                    return Barbearia.buscarBarbearias(latLng, firestore);
+                public Maybe<Map<String, Map<String, Object>>> buscarBarbearias(double latitude, double longitude) {
+                    return Barbearia.buscarBarbearias(latitude, longitude, firestore);
                 }
 
                 @Override
@@ -113,7 +114,7 @@ public class Service {
                 }
 
                 @Override
-                public Maybe<Map<String, Object>> obterEstabelecimento(String id) {
+                public Result<Map<String, Object>> obterEstabelecimento(String id) {
                     return Barbearia.obterEstabelecimento(id, getRequestFactory(), getGson());
                 }
 
@@ -123,8 +124,8 @@ public class Service {
                 }
 
                 @Override
-                public Maybe<Map<String, Map<String, Object>>> obterHorário(String id) {
-                    return Barbearia.obterHorário(id, firestore);
+                public Task<QuerySnapshot> obterHorario(String id) {
+                    return Barbearia.obterHorario(id, firestore);
                 }
 
                 @Override
@@ -192,7 +193,7 @@ public class Service {
         return barbeariaService;
     }
 
-    public Executor getExecutor() {
+    public ExecutorService getExecutor() {
         return executor == null ? executor = Executors.newFixedThreadPool( Runtime.getRuntime().availableProcessors() + 1) : executor;
     }
 
@@ -233,17 +234,17 @@ public class Service {
         if (locationService == null) {
             locationService = new LocationService() {
                 @Override
-                public Maybe<Location> getLocation(CancellationToken cancellationToken) {
+                public Task<Location> getLocation(CancellationToken cancellationToken) {
                     return kev.app.timeless.api.Location.Location.getLocation(fusedLocationProviderClient, cancellationToken);
                 }
 
                 @Override
-                public Maybe<Task<Void>> insertLocation(String id, String hash) {
+                public Task<Void> insertLocation(String id, String hash) {
                     return kev.app.timeless.api.Location.Location.insertLocation(id, hash, firestore);
                 }
 
                 @Override
-                public Maybe<Task<Void>> removeLocation(String id) {
+                public Task<Void> removeLocation(String id) {
                     return kev.app.timeless.api.Location.Location.removeLocation(id, firestore);
                 }
             } ;

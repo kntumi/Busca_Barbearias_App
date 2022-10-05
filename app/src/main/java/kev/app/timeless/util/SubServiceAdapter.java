@@ -17,7 +17,7 @@ import com.google.android.material.button.MaterialButton;
 import kev.app.timeless.R;
 
 public class SubServiceAdapter extends ListAdapter<State, SubServiceAdapter.SubServiceViewHolder> {
-    private View.OnClickListener onClickListener;
+    private final View.OnClickListener onClickListener;
 
     public SubServiceAdapter(@NonNull DiffUtil.ItemCallback<State> diffCallback, View.OnClickListener onClickListener) {
         super(diffCallback);

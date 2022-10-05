@@ -14,8 +14,8 @@ import kev.app.timeless.R;
 import kev.app.timeless.model.Serviço;
 
 public class ServicesAdapter extends ListAdapter<Serviço, ServicesAdapter.ServicoViewHolder> {
-    private View.OnClickListener onClickListener;
-    private View.OnLongClickListener onLongClickListener;
+    private final View.OnClickListener onClickListener;
+    private final View.OnLongClickListener onLongClickListener;
 
     public ServicesAdapter(@NonNull DiffUtil.ItemCallback<Serviço> diffCallback, View.OnClickListener onClickListener, View.OnLongClickListener onLongClickListener) {
         super(diffCallback);

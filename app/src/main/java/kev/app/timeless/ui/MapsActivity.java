@@ -1,5 +1,7 @@
 package kev.app.timeless.ui;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -16,14 +18,10 @@ import com.google.firebase.auth.FirebaseAuth;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import javax.inject.Inject;
 
 import dagger.android.support.DaggerAppCompatActivity;
-import io.reactivex.android.schedulers.AndroidSchedulers;
-import io.reactivex.disposables.Disposable;
-import io.reactivex.schedulers.Schedulers;
 import kev.app.timeless.R;
 import kev.app.timeless.api.Service;
 import kev.app.timeless.databinding.ActivityMapsBinding;
@@ -37,7 +35,6 @@ public class MapsActivity extends DaggerAppCompatActivity {
     @Inject
     ViewModelProvidersFactory providerFactory;
 
-    private Disposable disposable;
     private FirebaseAuth.AuthStateListener authStateListener;
     private ActivityMapsBinding binding;
     private LiveData<List<User>> users;
@@ -45,6 +42,9 @@ public class MapsActivity extends DaggerAppCompatActivity {
     private FragmentManager.FragmentLifecycleCallbacks fragmentLifecycleCallbacks;
     private FragmentManager.OnBackStackChangedListener onBackStackChangedListener;
     private Observer<List<User>> observer;
+    private SharedPreferences sharedPref;
+    private SharedPreferences.Editor editor;
+    private SharedPreferences.OnSharedPreferenceChangeListener onSharedPreferenceChangeListener;
     private User user;
 
     @Override
@@ -66,6 +66,9 @@ public class MapsActivity extends DaggerAppCompatActivity {
     protected void onStart() {
         super.onStart();
         observer = this::observarUsers;
+        sharedPref = getPreferences(Context.MODE_PRIVATE);
+        editor = sharedPref.edit();
+        onSharedPreferenceChangeListener = this::observarSharedPreferences;
         onBackStackChangedListener = this::observarBackstack;
         users = service.userDao().buscarUsuarioActual();
         fragmentLifecycleCallbacks = new FragmentManager.FragmentLifecycleCallbacks() {
@@ -135,6 +138,7 @@ public class MapsActivity extends DaggerAppCompatActivity {
         users.observeForever(observer);
         getSupportFragmentManager().registerFragmentLifecycleCallbacks(fragmentLifecycleCallbacks, true);
         getSupportFragmentManager().addOnBackStackChangedListener(onBackStackChangedListener);
+        sharedPref.registerOnSharedPreferenceChangeListener(onSharedPreferenceChangeListener);
     }
 
     @Override
@@ -143,13 +147,10 @@ public class MapsActivity extends DaggerAppCompatActivity {
         users.removeObserver(observer);
         getSupportFragmentManager().unregisterFragmentLifecycleCallbacks(fragmentLifecycleCallbacks);
         getSupportFragmentManager().removeOnBackStackChangedListener(onBackStackChangedListener);
+        sharedPref.unregisterOnSharedPreferenceChangeListener(onSharedPreferenceChangeListener);
 
         if (authStateListener != null) {
             service.getAuth().removeAuthStateListener(authStateListener);
-        }
-
-        if (disposable != null) {
-            disposable.dispose();
         }
     }
 
@@ -157,15 +158,6 @@ public class MapsActivity extends DaggerAppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         activityResultLauncher.unregister();
-        onBackStackChangedListener = null;
-        user = null;
-        users = null;
-        observer = null;
-        activityResultLauncher = null;
-        fragmentLifecycleCallbacks = null;
-        authStateListener = null;
-        disposable = null;
-        binding = null;
     }
 
     public ActivityResultLauncher<String[]> getActivityResultLauncher() {
@@ -193,19 +185,18 @@ public class MapsActivity extends DaggerAppCompatActivity {
     }
 
     private void observarAuth(FirebaseAuth firebaseAuth) {
-        if (disposable != null) {
-            disposable.dispose();
+        boolean isUserNull = firebaseAuth.getCurrentUser() == null;
+
+        if ((isUserNull & user == null) || (!isUserNull & user != null)) {
+            return;
         }
 
-        if (firebaseAuth.getCurrentUser() == null) {
-            if (user != null) {
-                disposable = service.userDao().apagarUsuario().subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe(() -> {}, Throwable::printStackTrace);
-            }
-        } else {
-            if (user == null) {
-                disposable = service.userDao().inserirUsuario(new User(Objects.requireNonNull(firebaseAuth.getCurrentUser()).getUid(), firebaseAuth.getCurrentUser().getEmail())).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe(() -> {}, Throwable::printStackTrace);
-            }
-        }
+        SharedPreferences.Editor mEditor = isUserNull ? editor.putString("id", firebaseAuth.getCurrentUser().getUid()).putString("email", firebaseAuth.getCurrentUser().getEmail()) : editor.remove("id").remove("email");
+        mEditor.apply();
+    }
+
+    private void observarSharedPreferences(SharedPreferences sharedPreferences, String s) {
+
     }
 
     private void observarResult(Map<String, Boolean> result) {

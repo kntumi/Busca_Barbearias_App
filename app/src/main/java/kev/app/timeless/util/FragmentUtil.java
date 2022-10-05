@@ -17,7 +17,6 @@ import kev.app.timeless.ui.LoginFragment;
 import kev.app.timeless.ui.ManageScheduleFragment;
 import kev.app.timeless.ui.MapsFragment;
 import kev.app.timeless.ui.NewContactFragment;
-import kev.app.timeless.ui.NonUserControlFragment;
 import kev.app.timeless.ui.NonUserFragment;
 import kev.app.timeless.ui.ProfileFragment;
 import kev.app.timeless.ui.RegisterFragment;
@@ -26,7 +25,6 @@ import kev.app.timeless.ui.SearchFragment;
 import kev.app.timeless.ui.ServicesFragment;
 import kev.app.timeless.ui.SubServiceFragment;
 import kev.app.timeless.ui.TypeServicesFragment;
-import kev.app.timeless.ui.UserControlFragment;
 import kev.app.timeless.ui.UserFragment;
 
 public class FragmentUtil {
@@ -82,10 +80,6 @@ public class FragmentUtil {
                 break;
             case "UserFragment":  fragment = new UserFragment();
                 break;
-            case "NonUserControlFragment": fragment = new NonUserControlFragment();
-                break;
-            case "UserControlFragment": fragment = new UserControlFragment();
-                break;
             case "LayoutFragment": fragment = new LayoutFragment();
                 break;
             case "SubServiceFragment": fragment = new SubServiceFragment();
@@ -131,10 +125,6 @@ public class FragmentUtil {
                 break;
             case "UserFragment":  fragment = new UserFragment();
                 break;
-            case "NonUserControlFragment": fragment = new NonUserControlFragment();
-                break;
-            case "UserControlFragment": fragment = new UserControlFragment();
-                break;
             case "LayoutFragment": fragment = new LayoutFragment();
                 break;
             case "SubServiceFragment": fragment = new SubServiceFragment();
@@ -175,10 +165,6 @@ public class FragmentUtil {
             case "NonUserFragment": fragment = new NonUserFragment();
                 break;
             case "UserFragment":  fragment = new UserFragment();
-                break;
-            case "NonUserControlFragment": fragment = new NonUserControlFragment();
-                break;
-            case "UserControlFragment": fragment = new UserControlFragment();
                 break;
             case "LayoutFragment": fragment = new LayoutFragment();
                 break;

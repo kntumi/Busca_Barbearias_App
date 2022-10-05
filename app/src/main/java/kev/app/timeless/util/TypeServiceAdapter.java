@@ -14,7 +14,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import kev.app.timeless.R;
 
     public class TypeServiceAdapter extends ListAdapter<State, TypeServiceAdapter.ViewHolder> {
-    private View.OnClickListener onClickListener;
+    private final View.OnClickListener onClickListener;
 
     public TypeServiceAdapter(@NonNull DiffUtil.ItemCallback<State> diffCallback, View.OnClickListener onClickListener) {
         super(diffCallback);

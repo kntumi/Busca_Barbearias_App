@@ -406,9 +406,7 @@ public class ManageScheduleFragment extends DaggerFragment implements View.OnCli
         for (String s : list) {
             String key = prefixo.concat(s.substring(0, 1).toUpperCase().concat(s.substring(1)).concat(sufixo));
 
-            if (horario.containsKey(key)) {
-                horario.remove(key);
-            }
+            horario.remove(key);
         }
 
         if (bundle.containsKey("selectedEndIconParentId")) {

@@ -18,8 +18,8 @@ import kev.app.timeless.R;
 import kev.app.timeless.model.Contacto;
 
 public class ContactsAdapter extends ListAdapter<Contacto,  RecyclerView.ViewHolder> {
-    private View.OnClickListener onClickListener;
-    private Executor executor;
+    private final View.OnClickListener onClickListener;
+    private final Executor executor;
 
     public ContactsAdapter(@NonNull DiffUtil.ItemCallback<Contacto> diffCallback, View.OnClickListener onClickListener, Executor executor) {
         super(diffCallback);

@@ -1,15 +1,14 @@
 package kev.app.timeless.api.Barbearia;
 
+import android.text.TextUtils;
+
 import com.firebase.geofire.GeoFireUtils;
 import com.firebase.geofire.GeoLocation;
 import com.firebase.geofire.GeoQueryBounds;
-import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 import com.google.api.client.http.GenericUrl;
-import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
-import com.google.api.client.http.HttpResponse;
 import com.google.api.client.util.DateTime;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -27,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 import io.reactivex.Maybe;
+import kev.app.timeless.model.Result;
 
 public class Barbearia {
     public static Maybe<Boolean> removerSubServiço(String id, String idServiço, String idTipoServiço, String idSubServico, FirebaseFirestore firestore) {
@@ -257,31 +257,8 @@ public class Barbearia {
                 }));
     }
 
-    public static Maybe<Map<String, Map<String, Object>>> obterHorário(String id, FirebaseFirestore firestore) {
-        return Maybe.create(emitter -> firestore.collection("Barbearia")
-                .document(id)
-                .collection("horario")
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    Map<String, Map<String, Object>> horário = new HashMap<>();
-
-                    for (DocumentSnapshot documentSnapshot : querySnapshot.getDocuments()) {
-                        horário.put(documentSnapshot.getId(), new HashMap<>());
-
-                        for (String key : documentSnapshot.getData().keySet()) {
-                            horário.get(documentSnapshot.getId()).put(key, documentSnapshot.get(key));
-                        }
-                    }
-
-                    if (!emitter.isDisposed()) {
-                        emitter.onSuccess(horário);
-                    }
-                })
-               .addOnFailureListener(e -> {
-                    if (!emitter.isDisposed()) {
-                        emitter.onError(e);
-                    }
-                }));
+    public static Task<QuerySnapshot> obterHorario(String id, FirebaseFirestore firestore) {
+        return firestore.collection("Barbearia").document(id).collection("horario").get();
     }
 
     public static Maybe<Map<String, Map<String, Object>>> obterContactos(String id, FirebaseFirestore firestore) {
@@ -306,46 +283,41 @@ public class Barbearia {
                 }));
     }
 
-    public static Maybe<Map<String, Object>> obterEstabelecimento (String id, HttpRequestFactory requestFactory, Gson gson) {
-        return Maybe.create(emitter -> {
-            HashMap<String, Object> hashMap;
-            HttpRequest httpRequest;
+    public static Result<Map<String, Object>> obterEstabelecimento(String id, HttpRequestFactory requestFactory, Gson gson) {
+        if (TextUtils.isEmpty(id)) {
+            return new Result.Error<>(new NullPointerException());
+        }
 
-            httpRequest = requestFactory.buildGetRequest(new GenericUrl("https://firestore.googleapis.com/v1/projects/rupertt-d42df/databases/(default)/documents/Barbearia/".concat(id)));
+        LinkedTreeMap<?, ?> map;
 
-            try {
-                HttpResponse response = httpRequest.execute();
-                hashMap = new HashMap<>();
-                LinkedTreeMap<String, Object> map = gson.fromJson(response.parseAsString(), LinkedTreeMap.class);
+        try {
+            map = gson.fromJson(requestFactory.buildGetRequest(new GenericUrl("https://firestore.googleapis.com/v1/projects/rupertt-d42df/databases/(default)/documents/Barbearia/".concat(id))).execute().parseAsString(), LinkedTreeMap.class);
+        } catch (IOException e) {
+            return new Result.Error<>(e);
+        }
 
-                for (String key : map.keySet()) {
-                    switch (key) {
-                        case "fields": LinkedTreeMap<String, Object> treeMap = (LinkedTreeMap <String, Object>) map.get(key);
+        HashMap<String, Object> hashMap = new HashMap<>();
 
-                            for (Map.Entry<String, Object> entry : treeMap.entrySet()) {
-                                LinkedTreeMap<String, String> linkedHashMap = (LinkedTreeMap <String, String>) entry.getValue();
+        for (Object key : map.keySet()) {
+            switch (String.valueOf(key)) {
+                case "fields" : LinkedTreeMap<?, ?> treeMap = (LinkedTreeMap<?, ?>) map.get(key);
 
-                                for (Map.Entry<String, String> stringEntry : linkedHashMap.entrySet()) {
-                                    hashMap.put(entry.getKey(), stringEntry.getValue());
+                                for (Map.Entry<?, ?> entry : treeMap.entrySet()) {
+                                    LinkedTreeMap<?, ?> linkedHashMap = (LinkedTreeMap<?, ?>) entry.getValue();
+
+                                    for (Map.Entry<?, ?> stringEntry : linkedHashMap.entrySet()) {
+                                        hashMap.put(String.valueOf(entry.getKey()), stringEntry.getValue());
+                                    }
                                 }
-                            }
 
-                            break;
-                        case "updateTime": hashMap.put("updateTime", DateTime.parseRfc3339(String.valueOf(map.get(key))).getValue());
-                            break;
-                    }
-                }
+                                break;
 
-                if (!emitter.isDisposed()) {
-                    emitter.onSuccess(hashMap);
-                }
-
-            } catch (IOException e) {
-                if (!emitter.isDisposed()) {
-                    emitter.onError(e);
-                }
+                case "updateTime": hashMap.put(String.valueOf(key), DateTime.parseRfc3339(String.valueOf(map.get(key))).getValue());
+                                break;
             }
-        });
+        }
+
+        return new Result.Success<>(hashMap);
     }
 
     public static Maybe<Map<String, Object>> obterEstabelecimento (String id, FirebaseFirestore firestore) {
@@ -467,16 +439,19 @@ public class Barbearia {
                 }));
     }
 
-    public static Maybe<Map<String, Map<String, Object>>> buscarBarbearias(LatLng latLng, FirebaseFirestore firestore) {
+    public static Query getPlaceQuery(FirebaseFirestore firestore, String startHash, String endHash) {
+        return firestore.collection("Barbearia").orderBy("hash").startAt(startHash).endAt(endHash);
+    }
+
+    public static Maybe<Map<String, Map<String, Object>>> buscarBarbearias(double latitude, double longitude, FirebaseFirestore firestore) {
         return Maybe.create(emitter -> {
             try {
-                List<GeoQueryBounds> bounds = GeoFireUtils.getGeoHashQueryBounds(new GeoLocation(latLng.latitude, latLng.longitude), 0.5 * 1000);
+                List<GeoQueryBounds> bounds = GeoFireUtils.getGeoHashQueryBounds(new GeoLocation(latitude, longitude), 0.5 * 1000);
+
                 final List<Task<QuerySnapshot>> tasks = new ArrayList<>();
+
                 for (GeoQueryBounds b : bounds) {
-                    Query q = firestore.collection("Barbearia")
-                            .orderBy("hash")
-                            .startAt(b.startHash)
-                            .endAt(b.endHash);
+                    Query q = firestore.collection("Barbearia").orderBy("hash").startAt(b.startHash).endAt(b.endHash);
 
                     try {
                         tasks.add(q.get());

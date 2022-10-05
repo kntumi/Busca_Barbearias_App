@@ -26,17 +26,16 @@ import com.google.firebase.firestore.ListenerRegistration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
 
 import dagger.android.support.DaggerFragment;
-import io.reactivex.android.schedulers.AndroidSchedulers;
-import io.reactivex.disposables.Disposable;
-import io.reactivex.schedulers.Schedulers;
 import kev.app.timeless.R;
 import kev.app.timeless.databinding.FragmentAboutBinding;
 import kev.app.timeless.di.viewModelFactory.ViewModelProvidersFactory;
+import kev.app.timeless.model.Result;
 import kev.app.timeless.model.User;
 import kev.app.timeless.util.State;
 import kev.app.timeless.viewmodel.MapViewModel;
@@ -45,12 +44,12 @@ public class AboutFragment extends DaggerFragment implements View.OnClickListene
     private FragmentAboutBinding binding;
     private Observer<List<User>> observer;
     private MapViewModel viewModel;
-    private Disposable disposable;
     private Bundle bundle;
     private Map<State, ViewGroup.LayoutParams> layoutParamsMap;
     private Map<State, View> map;
     private AsyncLayoutInflater asyncLayoutInflater;
     private ListenerRegistration listenerRegistration;
+    private Future<Result<Map<String, Object>>> future;
     private String loggedInUserId;
 
     @Inject
@@ -84,20 +83,19 @@ public class AboutFragment extends DaggerFragment implements View.OnClickListene
     @Override
     public void onPause() {
         super.onPause();
-        if (disposable != null) {
-            if (!disposable.isDisposed()) {
-                disposable.dispose();
-            }
-        }
 
         if (listenerRegistration != null) {
             listenerRegistration.remove();
         }
 
+        if (future != null && !future.isCancelled() && !future.isDone()) {
+            future.cancel(true);
+        }
+
         if (map.containsKey(State.Error)) {
             ConstraintLayout layout = (ConstraintLayout) map.get(State.Error);
 
-            MaterialButton btn = (MaterialButton) layout.findViewById(R.id.retryBtn);
+            MaterialButton btn = layout.findViewById(R.id.retryBtn);
 
             if (btn.hasOnClickListeners()) {
                 btn.setOnClickListener(null);
@@ -125,7 +123,6 @@ public class AboutFragment extends DaggerFragment implements View.OnClickListene
         map.clear();
         layoutParamsMap.clear();
         loggedInUserId = null;
-        disposable = null;
         asyncLayoutInflater = null;
         bundle = null;
         observer = null;
@@ -235,19 +232,29 @@ public class AboutFragment extends DaggerFragment implements View.OnClickListene
     }
 
     private void obterEstabelecimento(Bundle bundle) {
-        disposable = viewModel.getService().getBarbeariaService().obterEstabelecimento(bundle.getString("id"))
-                .timeout(5, TimeUnit.SECONDS)
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(stringObjectMap -> {
-                    viewModel.getEstabelecimentos().put(bundle.getString("id"), stringObjectMap);
+        Result<Map<String, Object>> result;
 
-                    if (stringObjectMap.size() == 0) {
-                        onEmpty();
-                    } else {
-                        onLoaded();
-                    }
-                }, throwable -> onError());
+        future = viewModel.getService().getExecutor().submit(() -> viewModel.getService().getBarbeariaService().obterEstabelecimento(bundle.getString("id")));
+
+        try {
+            result = future.get(5, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            result = new Result.Error<>(e);
+        }
+
+        if (result instanceof Result.Error) {
+            return;
+        }
+
+        Map<String, Object> map = ((Result.Success<Map<String, Object>>) result).data;
+
+        viewModel.getEstabelecimentos().put(bundle.getString("id"), map);
+
+        if (map.size() == 0) {
+            onEmpty();
+        } else {
+            onLoaded();
+        }
     }
 
     private void removerViewsDoLayout() {

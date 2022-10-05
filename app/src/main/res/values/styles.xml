@@ -8,10 +8,6 @@
         <item name="android:backgroundDimAmount">0.0</item>
     </style>
 
-    <style name="switchTheme" parent="TextAppearance.AppCompat.Widget.Switch">
-        <item name="android:thumb">@drawable/thumb_selector</item>
-    </style>
-
     <style name="materialButton">
         <item name="android:letterSpacing">0</item>
         <item name="textAllCaps">false</item>
@@ -19,53 +15,28 @@
         <item name="fontFamily">sans-serif-black</item>
     </style>
 
-    <style name="materialDialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
-        <item name="materialAlertDialogBodyTextStyle">
-            @style/MaterialAlertDialog.MaterialComponents.Body.Text
-        </item>
-        <item name="colorPrimary">@color/colorAccent</item>
-    </style>
-
-    <style name="titleTextAppearance" parent="TextAppearance.AppCompat.Title">
-        <item name="fontFamily">sans-serif-black</item>
-        <item name="android:textSize">18sp</item>
-        <item name="android:letterSpacing">0.0078125</item>
-    </style>
-
-    <style name="textAppearance" parent="TextAppearance.AppCompat.Title">
-        <item name="android:textSize">18sp</item>
-        <item name="android:letterSpacing">0.0078125</item>
-    </style>
-
     <style name="textAppearanceBarra" parent="TextAppearance.AppCompat.Title">
         <item name="android:textSize">16sp</item>
         <item name="android:letterSpacing">0</item>
     </style>
 
-    <style name="AppTheme.NoActionBar">
-        <item name="windowActionBar">false</item>
-        <item name="windowNoTitle">true</item>
-    </style>
-
-    <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
-
-    <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
-
     <style name="btns" parent="Widget.MaterialComponents.Button">
         <item name="backgroundTint">?android:textColorPrimaryInverse</item>
     </style>
 
-    <style name="myShapeAppearance" parent="ShapeAppearance.MaterialComponents.SmallComponent">
+    <style name="topFabButton" parent="@style/Widget.MaterialComponents.FloatingActionButton">
+        <item name="tint">#fff</item>
+        <item name="backgroundTint">@color/colorPrimary</item>
+    </style>
+
+    <style name="bottomFabButton" parent="@style/Widget.MaterialComponents.FloatingActionButton">
+        <item name="tint">?colorControlNormal</item>
+        <item name="backgroundTint">#fff</item>
+    </style>
+
+    <style name="roundedImageShapeAppearance" parent="ShapeAppearance.MaterialComponents.MediumComponent">
         <item name="cornerFamily">rounded</item>
-        <item name="cornerSize">25dp</item>
-    </style>
-
-    <style name="MyBottomSheetDialogTheme" parent="Theme.Design.Light.BottomSheetDialog">
-        <item name="bottomSheetStyle">@style/MYBottomSheetStyle</item>
-    </style>
-
-    <style name="MYBottomSheetStyle" parent="Widget.Design.BottomSheet.Modal">
-        <item name="android:background">@android:color/transparent</item>
+        <item name="cornerSize">15%</item>
     </style>
 
     <style name="textAppearanceSchedule" parent="TextAppearance.AppCompat.Body1">
