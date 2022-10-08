@@ -13,7 +13,4 @@
     <!-- Messages Preferences -->
 
     <!-- Sync Preferences -->
-    <string name="account_header">Conta</string>
-    <string name="email_title">E-mail</string>
-    <string name="pass_title">Palavra-Passe</string>
 </resources>

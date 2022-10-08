@@ -20,27 +20,20 @@
         <item name="android:letterSpacing">0</item>
     </style>
 
-    <style name="btns" parent="Widget.MaterialComponents.Button">
-        <item name="backgroundTint">?android:textColorPrimaryInverse</item>
-    </style>
-
     <style name="topFabButton" parent="@style/Widget.MaterialComponents.FloatingActionButton">
         <item name="tint">#fff</item>
         <item name="backgroundTint">@color/colorPrimary</item>
     </style>
 
+    <style name="topToolbar" parent="@style/Widget.MaterialComponents.Toolbar.PrimarySurface">
+        <item name="android:background">#000</item>
+        <item name="elevation">0dp</item>
+        <item name="android:elevation">0dp</item>
+        <item name="colorControlNormal">?colorControlNormal</item>
+    </style>
+
     <style name="bottomFabButton" parent="@style/Widget.MaterialComponents.FloatingActionButton">
-        <item name="tint">?colorControlNormal</item>
         <item name="backgroundTint">#fff</item>
-    </style>
-
-    <style name="roundedImageShapeAppearance" parent="ShapeAppearance.MaterialComponents.MediumComponent">
-        <item name="cornerFamily">rounded</item>
-        <item name="cornerSize">15%</item>
-    </style>
-
-    <style name="textAppearanceSchedule" parent="TextAppearance.AppCompat.Body1">
-        <item name="android:textSize">14sp</item>
     </style>
 
 </resources>

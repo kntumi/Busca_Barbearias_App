@@ -75,6 +75,10 @@ public class MapViewModel extends ViewModel {
         return location;
     }
 
+    public void setLocation(Location location) {
+        this.location = location;
+    }
+
     public Service getService() {
         return service;
     }
@@ -89,6 +93,5 @@ public class MapViewModel extends ViewModel {
         service = null;
         horarios = null;
         location = null;
-        estabelecimentos = null;
     }
 }

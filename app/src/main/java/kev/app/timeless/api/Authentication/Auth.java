@@ -15,6 +15,10 @@ public class Auth {
                 return;
             }
 
+            if (emitter.isDisposed()) {
+                return;
+            }
+
             emitter.onError(new Exception());
 
         }).addOnFailureListener(emitter::onError));

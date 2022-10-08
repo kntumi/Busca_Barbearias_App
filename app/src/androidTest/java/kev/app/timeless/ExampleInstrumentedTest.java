@@ -3,23 +3,24 @@ package kev.app.timeless;
 import static org.junit.Assert.assertEquals;
 
 import android.content.Context;
-import android.os.Looper;
-import android.util.Log;
-import android.view.MotionEvent;
+import android.content.SharedPreferences;
 
-import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
+import androidx.fragment.app.testing.FragmentScenario;
+import androidx.lifecycle.Lifecycle;
+import androidx.test.core.app.ActivityScenario;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 
-import com.microsoft.maps.MapPermissionsDelegate;
-import com.microsoft.maps.MapPermissionsRequestArgs;
-import com.microsoft.maps.MapRenderMode;
-import com.microsoft.maps.MapStyleSheets;
-import com.microsoft.maps.MapView;
+import com.google.android.gms.maps.SupportMapFragment;
+import com.google.firebase.auth.FirebaseAuth;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import kev.app.timeless.api.Authentication.Auth;
+import kev.app.timeless.ui.MapsActivity;
 
 /**
  * Instrumented test, which will execute on an Android device.
@@ -28,6 +29,7 @@ import org.junit.runner.RunWith;
  */
 @RunWith(AndroidJUnit4.class)
 public class ExampleInstrumentedTest {
+
     @Test
     public void useAppContext() {
         // Context of the app under test.
@@ -37,34 +39,70 @@ public class ExampleInstrumentedTest {
 
     @Test
     public void testGesture () {
-        ContextCompat.getMainExecutor(InstrumentationRegistry.getInstrumentation().getTargetContext()).execute(new Runnable() {
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+
+        FragmentScenario.launchInContainer(SupportMapFragment.class, null)
+                        .moveToState(Lifecycle.State.RESUMED)
+                        .onFragment(new FragmentScenario.FragmentAction<SupportMapFragment>() {
+                            @Override
+                            public void perform(@NonNull SupportMapFragment supportMapFragment) {
+
+                            }
+                        });
+
+        ContextCompat.getMainExecutor(context).execute(new Runnable() {
             @Override
             public void run() {
-                ConstraintLayout layout = new ConstraintLayout(InstrumentationRegistry.getInstrumentation().getTargetContext());
 
-                MapView mapView = new MapView(InstrumentationRegistry.getInstrumentation().getTargetContext(), MapRenderMode.RASTER);
-                mapView.setCredentialsKey("AnvR3YzuwrdaDnBhRT7Anhep_nPYeeW4fQbzC6pp9GnoMx93h6DksUTXqDOlui0r");
-                mapView.setMapStyleSheet(MapStyleSheets.roadLight());
-
-                layout.addView(mapView);
-                mapView.setOnTouchListener((view, motionEvent) -> {
-                    System.out.println(motionEvent.getAction());
-
-                    switch(motionEvent.getAction()) {
-                        case (MotionEvent.ACTION_DOWN) : System.out.println("Action was DOWN");
-                            return true;
-                        case (MotionEvent.ACTION_MOVE) : System.out.println("Action was MOVE");
-                            return true;
-                        case (MotionEvent.ACTION_UP) : System.out.println("Action was UP");
-                            return true;
-                        case (MotionEvent.ACTION_CANCEL) : System.out.println("Action was CANCEL");
-                            return true;
-                        case (MotionEvent.ACTION_OUTSIDE) : System.out.println("Movement occurred outside bounds " + "of current screen element");
-                            return true;
-                        default : return view.onTouchEvent(motionEvent);
-                    }
-                });
             }
         });
+    }
+
+    @Test
+    public void testActivity() {
+        ActivityScenario<MapsActivity> activityScenario = ActivityScenario.launch(MapsActivity.class);
+        activityScenario.moveToState(Lifecycle.State.STARTED).close();
+    }
+
+    @Test
+    public void insertFirebaseUser() {
+        ActivityScenario
+                .launch(MapsActivity.class)
+                .moveToState(Lifecycle.State.STARTED)
+                .onActivity(activity -> {
+                    SharedPreferences sharedPreferences = activity.getPreferences(Context.MODE_PRIVATE);
+
+                    if (!sharedPreferences.contains("id") && !sharedPreferences.contains("email")) {
+                        makeLogin();
+                    }
+
+                }).moveToState(Lifecycle.State.RESUMED);
+    }
+
+    @Test
+    public void logOut() {
+        ActivityScenario
+                .launch(MapsActivity.class)
+                .moveToState(Lifecycle.State.STARTED)
+                .onActivity(activity -> {
+                    SharedPreferences sharedPreferences = activity.getPreferences(Context.MODE_PRIVATE);
+
+                    if (sharedPreferences.contains("id") && sharedPreferences.contains("email")) {
+                        FirebaseAuth.getInstance().signOut();
+                    }
+                }).moveToState(Lifecycle.State.RESUMED);
+    }
+
+    public void makeLogin() {
+        Auth.fazerLogIn(FirebaseAuth.getInstance(), "ntumi73@gmail.com", "kevinntumi").subscribe(() -> System.out.println("finished"), Throwable::printStackTrace);
+    }
+
+    @Test
+    public void hasCachedUser() {
+        ActivityScenario<MapsActivity> activityScenario = ActivityScenario.launch(MapsActivity.class);
+        activityScenario.moveToState(Lifecycle.State.STARTED).onActivity(activity -> {
+            SharedPreferences.Editor editor = activity.getPreferences(Context.MODE_PRIVATE).edit();
+            editor.putString("id", "2").putString("email", "ntumi73@gmail.com").apply();
+        }).moveToState(Lifecycle.State.RESUMED).close();
     }
 }
