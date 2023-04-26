@@ -15,8 +15,6 @@ import androidx.lifecycle.Observer;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
-import java.util.List;
-
 import javax.inject.Inject;
 
 import dagger.android.support.DaggerFragment;
@@ -29,7 +27,7 @@ import kev.app.timeless.model.User;
 public class UserFragment extends DaggerFragment {
     private LayoutUserBinding binding;
     private View.OnClickListener onClickListener;
-    private Observer<List<User>> observer;
+    private Observer<User> observer;
     private Disposable disposable;
     private AlertDialog alertDialog;
     private FragmentManager.FragmentLifecycleCallbacks fragmentLifecycleCallbacks;
@@ -47,7 +45,7 @@ public class UserFragment extends DaggerFragment {
     public void onStart() {
         super.onStart();
         onClickListener = this::observarClick;
-        observer = this::observarUsers;
+        observer = this::observarUser;
         alertDialog = new MaterialAlertDialogBuilder(requireActivity()).setCancelable(false).create();
         fragmentLifecycleCallbacks = new FragmentManager.FragmentLifecycleCallbacks() {
             @Override
@@ -132,13 +130,13 @@ public class UserFragment extends DaggerFragment {
         return bundle;
     }
 
-    private void observarUsers(List<User> users) {
-        if (users.size() != 0) {
-            binding.txtEmail.setText(users.get(0).getEmail());
+    private void observarUser(User user) {
+        if (user != null) {
+            binding.txtEmail.setText(user.getEmail());
         }
     }
 
-    public Observer<List<User>> getObserver() {
+    public Observer<User> getObserver() {
         return observer;
     }
 }

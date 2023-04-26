@@ -7,4 +7,6 @@
     <color name="corStatusBar">#202020</color>
     <color name="chip_bg">#8995FF</color>
     <color name="text_color">@color/text_color_chip_night</color>
+    <color name="customColorPrimary">#8995FF</color>
+    <color name="customBottomAppBarColor">#181818</color>
 </resources>

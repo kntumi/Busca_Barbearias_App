@@ -4,9 +4,11 @@ import static org.junit.Assert.assertEquals;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.telephony.TelephonyManager;
 
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
+import androidx.fragment.app.Fragment;
 import androidx.fragment.app.testing.FragmentScenario;
 import androidx.lifecycle.Lifecycle;
 import androidx.test.core.app.ActivityScenario;
@@ -21,6 +23,7 @@ import org.junit.runner.RunWith;
 
 import kev.app.timeless.api.Authentication.Auth;
 import kev.app.timeless.ui.MapsActivity;
+import kev.app.timeless.ui.MapsFragment;
 
 /**
  * Instrumented test, which will execute on an Android device.
@@ -56,6 +59,40 @@ public class ExampleInstrumentedTest {
 
             }
         });
+    }
+
+    @Test
+    public void testSecondActivity() {
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        Thread thread = Thread.currentThread();
+
+        FragmentScenario.launchInContainer(Fragment.class)
+                .moveToState(Lifecycle.State.RESUMED)
+                .onFragment(fragment -> {
+                    try {
+                        thread.join();
+
+                        FragmentScenario.launchInContainer(Fragment.class)
+                                .moveToState(Lifecycle.State.RESUMED).close();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                });
+    }
+
+    @Test
+    public void checkCountryCode() {
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+
+        System.out.println(telephonyManager.getNetworkCountryIso());
+        System.out.println(telephonyManager.getNetworkOperator());
+    }
+
+    @Test
+    public void recreateFragment() {
+        FragmentScenario<MapsFragment> fragmentScenario = FragmentScenario.launchInContainer(MapsFragment.class)
+                .recreate();
     }
 
     @Test

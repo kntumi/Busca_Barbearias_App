@@ -8,6 +8,10 @@
         <item name="android:backgroundDimAmount">0.0</item>
     </style>
 
+    <style name="bottomAppBarTheme" parent="Widget.MaterialComponents.BottomAppBar.PrimarySurface">
+        <item name="backgroundTint">@color/customBottomAppBarColor</item>
+    </style>
+
     <style name="materialButton">
         <item name="android:letterSpacing">0</item>
         <item name="textAllCaps">false</item>
@@ -21,8 +25,7 @@
     </style>
 
     <style name="topFabButton" parent="@style/Widget.MaterialComponents.FloatingActionButton">
-        <item name="tint">#fff</item>
-        <item name="backgroundTint">@color/colorPrimary</item>
+        <item name="backgroundTint">#fff</item>
     </style>
 
     <style name="topToolbar" parent="@style/Widget.MaterialComponents.Toolbar.PrimarySurface">
@@ -30,10 +33,6 @@
         <item name="elevation">0dp</item>
         <item name="android:elevation">0dp</item>
         <item name="colorControlNormal">?colorControlNormal</item>
-    </style>
-
-    <style name="bottomFabButton" parent="@style/Widget.MaterialComponents.FloatingActionButton">
-        <item name="backgroundTint">#fff</item>
     </style>
 
 </resources>

@@ -2,69 +2,60 @@
 <layout xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:id="@+id/layoutPrincipal"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:id="@+id/layoutPrincipal">
-
-        <androidx.appcompat.widget.Toolbar
-            android:id="@+id/toolbar"
-            style="@style/topToolbar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:menu="@menu/top_toolbar"
-            app:navigationIcon="@drawable/home">
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:id="@+id/searchView"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@drawable/bg_toolbar"
-                android:fontFamily="sans-serif-medium"
-                android:padding="10dp"
-                android:textColor="@color/toolbar_text_color" />
-
-        </androidx.appcompat.widget.Toolbar>
+        android:layout_height="match_parent">
 
         <androidx.fragment.app.FragmentContainerView
             android:id="@+id/map"
+            app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior"
             android:name="com.google.android.gms.maps.SupportMapFragment"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/toolbar" />
+            android:layout_height="match_parent"
+            android:layout_marginBottom="?actionBarSize"/>
+
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/searchNearby"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_search_nearby"
+            android:layout_gravity="center_horizontal"
+            android:textStyle="bold"
+            android:gravity="center_vertical"
+            android:layout_marginTop="24dp"
+            android:textSize="12sp"
+            android:paddingVertical="8dp"
+            android:paddingHorizontal="16dp"
+            app:drawableTint="?android:textColorPrimaryInverse"
+            android:textColor="?android:textColorPrimaryInverse" />
+
+        <com.google.android.material.bottomappbar.BottomAppBar
+            android:id="@+id/bottomAppBar"
+            style="@style/bottomAppBarTheme"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:elevation="0dp"
+            android:layout_gravity="bottom"
+            app:fabAlignmentMode="end"
+            app:fabCradleMargin="0dp"
+            app:fabCradleRoundedCornerRadius="0dp"
+            app:menu="@menu/bottom_app_bar" />
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/localizacao"
-            style="@style/bottomFabButton"
+            app:layout_anchor="@id/bottomAppBar"
+            app:layout_anchorGravity="end"
+            style="@style/topFabButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_margin="16dp"
             android:src="@drawable/minha_localizacao"
-            app:elevation="1dp"
+            app:elevation="0dp"
             app:hoveredFocusedTranslationZ="0dp"
-            app:layout_constraintBottom_toTopOf="@+id/perto"
-            app:layout_constraintEnd_toEndOf="parent"
             app:pressedTranslationZ="0dp" />
 
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/perto"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_margin="16dp"
-            style="@style/topFabButton"
-            android:src="@drawable/near_me"
-            app:elevation="1dp"
-            app:hoveredFocusedTranslationZ="0dp"
-            app:pressedTranslationZ="0dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
 </layout>

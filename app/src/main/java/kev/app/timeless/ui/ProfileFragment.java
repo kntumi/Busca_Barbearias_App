@@ -19,7 +19,7 @@ import kev.app.timeless.model.User;
 import kev.app.timeless.util.FragmentUtil;
 
 public class ProfileFragment extends BottomSheetDialogFragment {
-    private Observer<List<User>> observer;
+    private Observer<User> observer;
     private FragmentProfileBinding binding;
 
     @Override
@@ -31,17 +31,10 @@ public class ProfileFragment extends BottomSheetDialogFragment {
     @Override
     public void onStart() {
         super.onStart();
-        observer = users -> FragmentUtil.observarFragment(users.size() == 0 ? "NonUserFragment" : "UserFragment", getChildFragmentManager(), R.id.layoutPrincipal);
+        observer = users -> FragmentUtil.observarFragment(users == null ? "NonUserFragment" : "UserFragment", getChildFragmentManager(), R.id.layoutPrincipal);
     }
 
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        observer = null;
-        binding = null;
-    }
-
-    public Observer<List<User>> getObserver() {
+    public Observer<User> getObserver() {
         return observer;
     }
 }

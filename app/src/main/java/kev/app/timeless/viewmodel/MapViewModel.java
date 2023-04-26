@@ -2,6 +2,7 @@ package kev.app.timeless.viewmodel;
 
 import android.location.Location;
 
+import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import java.util.HashMap;
@@ -10,11 +11,12 @@ import java.util.Map;
 import javax.inject.Inject;
 
 import kev.app.timeless.api.Service;
+import kev.app.timeless.model.Result;
 
 public class MapViewModel extends ViewModel {
     private Map<String, Map<String, Object>> estabelecimentos;
     private Map<String, Map<String, Map<String, Object>>> horarios, servicos, tiposServicos, subServicos, contactos;
-    private Location location;
+    private MutableLiveData<Result<Location>> location;
     private Service service;
 
     @Inject
@@ -71,12 +73,12 @@ public class MapViewModel extends ViewModel {
         return contactos;
     }
 
-    public Location getLocation() {
-        return location;
-    }
+    public MutableLiveData<Result<Location>> getLocation() {
+        if (location == null) {
+            location = new MutableLiveData<>();
+        }
 
-    public void setLocation(Location location) {
-        this.location = location;
+        return location;
     }
 
     public Service getService() {

@@ -59,6 +59,7 @@ import kev.app.timeless.R;
 import kev.app.timeless.api.Barbearia.Barbearia;
 import kev.app.timeless.databinding.FragmentMapsBinding;
 import kev.app.timeless.di.viewModelFactory.ViewModelProvidersFactory;
+import kev.app.timeless.model.Result;
 import kev.app.timeless.model.User;
 import kev.app.timeless.util.FragmentUtil;
 import kev.app.timeless.viewmodel.MapViewModel;
@@ -71,11 +72,13 @@ public class MapsFragment extends DaggerFragment implements View.OnClickListener
     private Observer<kev.app.timeless.model.User> userObserver;
     private FragmentResultListener parentResultListener;
     private Handler handler;
+    private Bundle previousState;
     private ExecutorService executorService;
     private MapsActivity mapsActivity;
     private GoogleMap mMap;
     private SupportMapFragment supportMapFragment;
     private Toolbar.OnMenuItemClickListener onMenuItemClickListener;
+    private Observer<Result<Location>> locationObserver;
     private MapViewModel viewModel;
     private String id;
 
@@ -90,6 +93,7 @@ public class MapsFragment extends DaggerFragment implements View.OnClickListener
         super.onViewCreated(view, savedInstanceState);
         supportMapFragment = (SupportMapFragment) getChildFragmentManager().findFragmentById(R.id.map);
         viewModel = new ViewModelProvider(requireActivity(), providerFactory).get(MapViewModel.class);
+        previousState = savedInstanceState;
         onMenuItemClickListener = new Toolbar.OnMenuItemClickListener() {
             @Override
             public boolean onMenuItemClick(MenuItem item) {
@@ -101,6 +105,7 @@ public class MapsFragment extends DaggerFragment implements View.OnClickListener
         handler = new Handler(Looper.getMainLooper());
         parentResultListener = this::observeParent;
         userObserver = this::observeUser;
+        locationObserver = this::observeLocationResult;
         initialize();
     }
 
@@ -108,8 +113,9 @@ public class MapsFragment extends DaggerFragment implements View.OnClickListener
     public void onResume() {
         super.onResume();
         mapsActivity.getSupportFragmentManager().setFragmentResultListener(getClass().getSimpleName(), this, parentResultListener);
-        binding.toolbar.setNavigationOnClickListener(this);
-        binding.toolbar.setOnMenuItemClickListener(onMenuItemClickListener);
+        binding.bottomAppBar.setOnMenuItemClickListener(onMenuItemClickListener);
+        binding.searchNearby.setOnClickListener(this);
+        viewModel.getLocation().observeForever(locationObserver);
 
         if (mMap != null) {
             mMap.setOnMapLoadedCallback(this);
@@ -120,14 +126,31 @@ public class MapsFragment extends DaggerFragment implements View.OnClickListener
     public void onPause() {
         super.onPause();
         mapsActivity.getSupportFragmentManager().clearFragmentResultListener(getClass().getSimpleName());
-        binding.toolbar.setNavigationOnClickListener(null);
-        binding.toolbar.setOnMenuItemClickListener(null);
+        binding.bottomAppBar.setOnMenuItemClickListener(null);
+        binding.searchNearby.setOnClickListener(null);
+        viewModel.getLocation().removeObserver(locationObserver);
 
         if (mMap != null) {
             mMap.setOnMapLoadedCallback(null);
             binding.localizacao.setOnClickListener(null);
-            binding.perto.setOnClickListener(null);
         }
+    }
+
+    @Override
+    public void onViewStateRestored(@Nullable Bundle savedInstanceState) {
+        super.onViewStateRestored(savedInstanceState);
+        if (savedInstanceState == null) {
+            return;
+        }
+
+        for (String key : savedInstanceState.keySet()) {
+            System.out.println(key+": "+savedInstanceState.get(key));
+        }
+    }
+
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
     }
 
     public Observer<User> getUserObserver() {
@@ -152,9 +175,13 @@ public class MapsFragment extends DaggerFragment implements View.OnClickListener
         Snackbar.make(binding.layoutPrincipal, "", Snackbar.LENGTH_LONG).setAction("", this).show();
     }
 
-    private void searchForPlaces(LatLng latLng) {
-        binding.perto.setEnabled(false);
+    private void observeLocationResult(Result<Location> result) {
+        if (result instanceof Result.Error) {
 
+        }
+    }
+
+    private void searchForPlaces(LatLng latLng) {
         executorService.execute(() -> {
             List<GeoQueryBounds> bounds = GeoFireUtils.getGeoHashQueryBounds(new GeoLocation(latLng.latitude, latLng.longitude), 0.5 * 1000);
 
@@ -165,8 +192,6 @@ public class MapsFragment extends DaggerFragment implements View.OnClickListener
             }
 
             Tasks.whenAllComplete(tasks).addOnCompleteListener(executorService, taskList -> {
-                handler.post(() -> binding.perto.setEnabled(true));
-
                 if (!taskList.isSuccessful() || taskList.getException() != null) {
                     handler.post(() -> Snackbar.make(binding.layoutPrincipal, "", Snackbar.LENGTH_LONG).show());
                     return;
@@ -195,17 +220,11 @@ public class MapsFragment extends DaggerFragment implements View.OnClickListener
     @Override
     public void onClick(View view) {
         switch (view.getId()) {
-            case R.id.searchView:
-                requireActivity().getSupportFragmentManager().beginTransaction().setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out).replace(binding.layoutPrincipal.getId(), FragmentUtil.obterFragment("SearchFragment", null)).commit();
+            case R.id.searchView: requireActivity().getSupportFragmentManager().beginTransaction().setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out).replace(binding.layoutPrincipal.getId(), FragmentUtil.obterFragment("SearchFragment", null)).commit();
                 break;
-            case R.id.localizacao:
-                verifyPermission();
+            case R.id.localizacao: verifyPermission();
                 break;
-            case R.id.perto:
-                searchForPlaces(mMap.getCameraPosition().target);
-                break;
-            case View.NO_ID:
-                requireActivity().getSupportFragmentManager().beginTransaction().setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out).add(FragmentUtil.obterFragment("ProfileFragment", null), null).commitNow();
+            case View.NO_ID: requireActivity().getSupportFragmentManager().beginTransaction().setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out).add(FragmentUtil.obterFragment("ProfileFragment", null), null).commitNow();
                 break;
         }
     }
@@ -219,30 +238,26 @@ public class MapsFragment extends DaggerFragment implements View.OnClickListener
     }
 
     private void observeParent(String requestKey, Bundle result) {
-        if (result.containsKey(Manifest.permission.ACCESS_FINE_LOCATION) || result.containsKey(Manifest.permission.ACCESS_COARSE_LOCATION)) {
-            int granted = 0;
+        int granted = 0;
 
-            for (String key : result.keySet()) {
-                if (TextUtils.equals(key, Manifest.permission.ACCESS_FINE_LOCATION) || TextUtils.equals(key, Manifest.permission.ACCESS_COARSE_LOCATION)) {
-                    granted = granted + (result.getBoolean(key) ? +1 : -1);
-                }
+        for (String key : result.keySet()) {
+            if (TextUtils.equals(key, Manifest.permission.ACCESS_FINE_LOCATION) || TextUtils.equals(key, Manifest.permission.ACCESS_COARSE_LOCATION)) {
+                granted = granted + (result.getBoolean(key) ? 1 : 0);
             }
+        }
 
-            if (granted <= 0) {
-                return;
-            }
-
+        if (granted != 0) {
             obtainCurrentLocation();
         }
     }
 
     private void initialize() {
-        String text = "Pesquise por nome";
+        CharSequence text = "Começar a busca";
 
         try {
-            binding.searchView.setPrecomputedText(PrecomputedTextCompat.getTextFuture(text, binding.searchView.getTextMetricsParamsCompat(), executorService).get());
+            binding.searchNearby.setPrecomputedText(PrecomputedTextCompat.getTextFuture(text, binding.searchNearby.getTextMetricsParamsCompat(), executorService).get());
         } catch (Exception e) {
-            binding.searchView.setText(text);
+            binding.searchNearby.setText(text);
         }
 
         supportMapFragment.getMapAsync(this);
@@ -250,12 +265,15 @@ public class MapsFragment extends DaggerFragment implements View.OnClickListener
 
     @SuppressLint("MissingPermission")
     private void obtainCurrentLocation() {
-        if (!mMap.isMyLocationEnabled()) {
-            mMap.setMyLocationEnabled(true);
+        try {
+            if (!mMap.isMyLocationEnabled()) {
+                mMap.setMyLocationEnabled(true);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
         if (viewModel.getLocation() != null) {
-            System.out.println("damn ");
             return;
         }
 
@@ -272,12 +290,12 @@ public class MapsFragment extends DaggerFragment implements View.OnClickListener
         }
 
         if (location == null && !viewModel.getService().getLocationManager().getProviders(true).contains(LocationManager.GPS_PROVIDER)) {
-            Toast.makeText(requireActivity(), "O GPS está desactivado!", Toast.LENGTH_LONG).show();
+            Snackbar.make(binding.localizacao, "Para continuar ative o GPS", Snackbar.LENGTH_LONG).setAction("Sim", this).show();
             return;
         }
 
         if (location != null) {
-            viewModel.setLocation(location);
+            //viewModel.setLocation(location);
             observeLocation(location);
             return;
         }
@@ -294,7 +312,7 @@ public class MapsFragment extends DaggerFragment implements View.OnClickListener
 
             Location currentLocation = task.getResult();
 
-            viewModel.setLocation(currentLocation);
+            //viewModel.setLocation(currentLocation);
 
             try {
                 handler.post(() -> observeLocation(currentLocation));
@@ -315,11 +333,15 @@ public class MapsFragment extends DaggerFragment implements View.OnClickListener
         mMap = googleMap;
         mMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(requireContext(), (requireContext().getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES ? R.raw.map_night_styling : R.raw.map_day_styling));
 
-        verifyPermission();
+        if (mMap.getUiSettings().isMyLocationButtonEnabled()) {
+            mMap.getUiSettings().setMyLocationButtonEnabled(false);
+        }
+
+        if (previousState == null) {
+            verifyPermission();
+        }
 
         mMap.setOnMapLoadedCallback(this);
-
-        mMap.getUiSettings().setMyLocationButtonEnabled(false);
     }
 
     public void requestLocationPermissions() {
@@ -329,6 +351,5 @@ public class MapsFragment extends DaggerFragment implements View.OnClickListener
     @Override
     public void onMapLoaded() {
         binding.localizacao.setOnClickListener(this);
-        binding.perto.setOnClickListener(this);
     }
 }

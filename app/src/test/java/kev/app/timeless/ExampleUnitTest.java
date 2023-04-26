@@ -8,6 +8,7 @@ import android.text.TextUtils;
 
 import com.firebase.geofire.GeoLocation;
 import com.firebase.geofire.core.GeoHash;
+import com.google.firebase.auth.FirebaseAuth;
 
 import org.junit.Test;
 
@@ -29,6 +30,11 @@ public class ExampleUnitTest {
         String hash = "";
         GeoLocation location = hash == null || hash.isEmpty() ? null : GeoHash.locationFromHash(hash);
         assertNotNull(location);
+    }
+
+    @Test
+    public void isFirebaseUserNull() {
+        System.out.println(FirebaseAuth.getInstance().getCurrentUser());
     }
 
     @Test

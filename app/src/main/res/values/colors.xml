@@ -7,4 +7,6 @@
     <color name="corStatusBar">#FFCCCCCC</color>
     <color name="chip_bg">@color/colorPrimary</color>
     <color name="text_color">@color/text_color_chip</color>
+    <color name="customColorPrimary">#5263FF</color>
+    <color name="customBottomAppBarColor">#000</color>
 </resources>

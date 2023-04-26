@@ -41,7 +41,6 @@ public class MapsActivity extends DaggerAppCompatActivity {
     private FragmentManager.FragmentLifecycleCallbacks fragmentLifecycleCallbacks;
     private FragmentManager.OnBackStackChangedListener onBackStackChangedListener;
     private SharedPreferences sharedPref;
-    private SharedPreferences.Editor mEditor;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,7 +53,7 @@ public class MapsActivity extends DaggerAppCompatActivity {
     protected void onPostCreate(@Nullable Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
         if (getSupportFragmentManager().getBackStackEntryCount() == 0) {
-            getSupportFragmentManager().beginTransaction().replace(binding.layoutPrincipal.getId(), new MapsFragment()).commit();
+            getSupportFragmentManager().beginTransaction().replace(binding.layoutPrincipal.getId(), new MapsFragment()).commitNow();
         }
     }
 
@@ -62,7 +61,6 @@ public class MapsActivity extends DaggerAppCompatActivity {
     protected void onStart() {
         super.onStart();
         sharedPref = getPreferences(Context.MODE_PRIVATE);
-        mEditor = sharedPref.edit();
         onBackStackChangedListener = this::observarBackstack;
         authStateListener = this::observarAuth;
         user = new MutableLiveData<>(sharedPref.contains("id") && sharedPref.contains("email") ? new User(sharedPref.getString("id", ""), sharedPref.getString("email", "")) : null);
@@ -73,9 +71,9 @@ public class MapsActivity extends DaggerAppCompatActivity {
                 switch (f.getClass().getSimpleName()) {
                     case "MapsFragment": user.observeForever(((MapsFragment) f).getUserObserver());
                         break;
-                    case "ProfileFragment":
+                    case "ProfileFragment": user.observeForever(((ProfileFragment) f).getObserver());
                         break;
-                    case "UserFragment":
+                    case "UserFragment": user.observeForever(((UserFragment) f).getObserver());
                         break;
                 }
             }
@@ -86,9 +84,9 @@ public class MapsActivity extends DaggerAppCompatActivity {
                 switch (f.getClass().getSimpleName()) {
                     case "MapsFragment": user.removeObserver(((MapsFragment) f).getUserObserver());
                         break;
-                    case "ProfileFragment":
+                    case "ProfileFragment": user.removeObserver(((ProfileFragment) f).getObserver());
                         break;
-                    case "UserFragment":
+                    case "UserFragment": user.removeObserver(((UserFragment) f).getObserver());
                         break;
                 }
             }
@@ -134,9 +132,8 @@ public class MapsActivity extends DaggerAppCompatActivity {
             return;
         }
 
-        System.out.println("isUserNull: "+isUserNull);
-
-        (isUserNull ? mEditor.remove("id").remove("email") : mEditor.putString("id", firebaseAuth.getCurrentUser().getUid()).putString("email", firebaseAuth.getCurrentUser().getEmail())).apply();
+        SharedPreferences.Editor mEditor = (isUserNull ? sharedPref.edit().remove("id").remove("email") : sharedPref.edit().putString("id", firebaseAuth.getCurrentUser().getUid()).putString("email", firebaseAuth.getCurrentUser().getEmail()));
+        mEditor.apply();
     }
 
     private void observarResult(Map<String, Boolean> result) {

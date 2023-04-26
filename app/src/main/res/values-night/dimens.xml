@@ -1,0 +1,3 @@
+<resources>
+    <dimen name="bottomAppBarElevation">4dp</dimen>
+</resources>
